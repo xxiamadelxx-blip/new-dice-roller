@@ -9,6 +9,12 @@
     "fallback": false,
     "source_boundary": "greenfield"
   },
+  "provenance": {
+    "source_type": "user-provided-moodboard",
+    "source_ids": ["1000044741.jpg", "1000044744.jpg", "1000044743.jpg", "1000044748.jpg", "1000044752.jpg", "1000044785.jpg", "1000046340.jpg", "1000046341.jpg", "1000046345.jpg"],
+    "usage": "material and atmosphere reference only; no runtime asset copied",
+    "runtime_copy": false
+  },
   "scene_layers": {
     "dice": ["obsidian-ember", "moonstone-veil", "verdant-rite", "bloodglass", "opal-veil"],
     "tray": ["dusk-oak", "star-covenant", "moss-and-brass", "crimson-forge"],
