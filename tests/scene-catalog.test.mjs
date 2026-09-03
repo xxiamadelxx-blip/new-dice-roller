@@ -6,6 +6,7 @@ import {
   SCENE_SKINS,
   SKIN_CATEGORIES,
   normalizeAppearance,
+  renderDice,
 } from '../src/scene.js';
 import { WEBGL_PROFILE } from '../src/webgl-scene.js';
 
@@ -26,4 +27,22 @@ test('appearance normalization never changes the dice catalog', () => {
 
 test('WebGL renderer exposes the Visual Lab profile', () => {
   assert.equal(WEBGL_PROFILE, 'adel-dice-webgl-v1');
+});
+
+test('scene never presents committed dice through a CSS fallback when WebGL is unavailable', () => {
+  const makeNode = () => ({
+    children: [],
+    className: '',
+    innerHTML: '',
+    append(...nodes) { this.children.push(...nodes); },
+    replaceChildren(...nodes) { this.children = nodes; },
+  });
+  const documentLike = { createElement: () => makeNode() };
+  const root = makeNode();
+
+  renderDice(documentLike, root, { die: 'd20', outcomes: [20] }, DEFAULT_APPEARANCE, 'settled', 'failed');
+
+  assert.equal(root.children.length, 1);
+  assert.equal(root.children[0].className, 'dice-empty dice-empty-failed');
+  assert.match(root.children[0].innerHTML, /WebGL-сцена недоступна/);
 });
