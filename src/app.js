@@ -261,7 +261,7 @@ function formatFormula(request) {
 function renderScene() {
   if (!refs.stage) return;
   applyAppearanceToStage(refs.stage, state.appearance, state.request.mode);
-  renderDice(document, refs.diceCluster, state.lastRoll, state.appearance, state.phase);
+  renderDice(document, refs.diceCluster, state.lastRoll, state.appearance, state.phase, qaState.rendererStatus);
   sceneRenderer?.render({
     mode: state.request.mode,
     appearance: state.appearance,
@@ -270,7 +270,9 @@ function renderScene() {
     phase: state.phase,
   });
   refs.sceneModeReadout.textContent = MODE_LABELS[state.request.mode];
-  refs.scenePhase.textContent = state.phase === 'rolling'
+  refs.scenePhase.textContent = qaState.rendererStatus === 'failed'
+    ? 'WEBGL БЛОКИРОВАН'
+    : state.phase === 'rolling'
     ? 'БРОСОК В ДВИЖЕНИИ'
     : state.phase === 'error'
       ? 'ОШИБКА БРОСКА'
@@ -284,7 +286,7 @@ function renderScene() {
   refs.rollButton.setAttribute('aria-busy', state.phase === 'rolling' ? 'true' : 'false');
   qaState.frame += 1;
   qaState.captureId = `candidate-${String(qaState.frame).padStart(4, '0')}`;
-  setQa({ phase: state.phase, lastRollId: state.lastRoll?.id || null });
+  setQa({ phase: qaState.rendererStatus === 'failed' ? 'error' : state.phase, lastRollId: state.lastRoll?.id || null });
 }
 
 function renderHistory() {
@@ -449,6 +451,11 @@ async function copyManifest() {
 
 function handleRendererFailure(error) {
   sceneRenderer = null;
+  window.clearTimeout(rollTimer);
+  if (state.phase === 'rolling') {
+    state.phase = 'error';
+    persist();
+  }
   refs.stage?.classList.remove('webgl-active');
   refs.rollButton.disabled = true;
   refs.scenePhase.textContent = 'WEBGL БЛОКИРОВАН';
@@ -461,6 +468,7 @@ function handleRendererFailure(error) {
     errorCount: qaState.errorCount + 1,
   });
   refs.headerState.innerHTML = '<span class="state-dot"></span><span>RENDERER BLOCKED</span>';
+  renderScene();
   showToast('Нужен WebGL 2 — fallback отключён');
 }
 
