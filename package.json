@@ -1,0 +1,10 @@
+{
+  "name": "new-dice-roller",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/core.test.mjs",
+    "check": "node --check src/app.js && node --check src/dice.js && node --check src/rng.js && node --check src/roll.js && node --check src/renderer.js"
+  }
+}
