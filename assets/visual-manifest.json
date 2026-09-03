@@ -6,23 +6,24 @@
   "runtime": {
     "profile": "adel-dice-webgl-v1",
     "renderer": "webgl2-canvas-v1",
-    "external_assets": false,
+    "external_assets": true,
     "fallback": false,
     "source_boundary": "greenfield",
-    "scene_objects": "procedural-webgl2-geometry",
+    "scene_objects": "procedural-webgl2-dice-over-reference-tray",
     "atmosphere": "authored-css-behind-transparent-canvas",
-    "camera": "isometric-3-quarter",
+    "camera": "isometric-3-quarter-over-photographic-reference",
     "feedback": ["procedural-dice-audio", "navigator-vibrate-best-effort"]
   },
   "provenance": {
     "source_type": "user-provided-moodboard",
     "source_ids": ["1000046343.jpg", "1000046342.jpg", "1000046345.jpg", "1000046341.jpg", "1000046340.jpg", "1000044745.jpg", "1000044741.jpg", "1000044743.jpg", "1000044744.jpg"],
-    "usage": "material and atmosphere reference only; no runtime asset copied",
-    "runtime_copy": false
+    "usage": "the supplied tray photo is a runtime visual asset; no other project assets are used",
+    "runtime_copy": true,
+    "runtime_asset": "assets/tray-reference.jpg"
   },
   "scene_layers": {
     "dice": ["obsidian-ember", "moonstone-veil", "verdant-rite", "bloodglass", "opal-veil", "bloodstone-rite", "amethyst-fluorite", "blue-sandstone", "rose-quartz", "prismatic-glass"],
-    "tray": ["dusk-oak", "star-covenant", "moss-and-brass", "crimson-forge"],
+    "tray": ["reference-lacquer", "dusk-oak", "star-covenant", "moss-and-brass", "crimson-forge"],
     "tower": ["brass-arc", "moon-spire", "verdant-keep"],
     "table": ["obsidian-desk", "lunar-slate", "deepwood-map", "ember-vault"]
   },

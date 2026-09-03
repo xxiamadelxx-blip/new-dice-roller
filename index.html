@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0e0b09">
     <meta name="description" content="Новый бросатель D&D кубиков от d4 до d100">
     <title>Ø Arcane Desk — Dice Roller</title>
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
   </head>
   <body>
     <div class="app-shell">
@@ -36,9 +36,10 @@
               <span class="eyebrow">ACTIVE DESK</span>
               <span class="scene-mode-readout" id="scene-mode-readout">ЛОТОК</span>
             </div>
-            <div class="scene-stage" id="scene-stage" data-mode="tray" data-die-skin="obsidian-ember" data-tray-skin="dusk-oak" data-tower-skin="brass-arc" data-table-skin="obsidian-desk">
+            <div class="scene-stage" id="scene-stage" data-mode="tray" data-die-skin="obsidian-ember" data-tray-skin="reference-lacquer" data-tower-skin="brass-arc" data-table-skin="obsidian-desk">
               <div class="scene-atmosphere" aria-hidden="true"></div>
               <div class="scene-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <img class="reference-tray-image" src="assets/tray-reference.jpg" alt="" aria-hidden="true">
               <canvas class="scene-canvas" id="scene-canvas" aria-label="WebGL-сцена броска"></canvas>
 
               <div class="scene-object scene-table-object" data-scene-object="table" aria-hidden="true">
@@ -192,6 +193,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="src/app.js?v=4"></script>
+    <script type="module" src="src/app.js?v=5"></script>
   </body>
 </html>

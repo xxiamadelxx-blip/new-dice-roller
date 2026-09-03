@@ -634,8 +634,9 @@ function buildMesh(state, time) {
   const traySkin = getSkin('tray', appearance.tray);
   const towerSkin = getSkin('tower', appearance.tower);
   const diceSkin = getSkin('dice', appearance.dice);
-  addTable(mesh, tableSkin);
-  if (state.mode === 'tray') addTray(mesh, traySkin);
+  const photoTray = state.mode === 'tray' && appearance.tray === REFERENCE_TRAY_SKIN;
+  if (!photoTray) addTable(mesh, tableSkin);
+  if (state.mode === 'tray' && !photoTray) addTray(mesh, traySkin);
   if (state.mode === 'tower') addTower(mesh, towerSkin);
 
   const dieMaterial = parseHex(diceSkin.body);
@@ -648,13 +649,13 @@ function buildMesh(state, time) {
     const bounce = rolling ? Math.sin(progress * Math.PI) * 0.72 : 0;
     const spin = rolling ? (1 - progress) * (index % 2 ? -1 : 1) * 4.4 : (index % 2 ? -0.12 : 0.12);
     const { shape, size, squash } = dieShape(die.id);
-    const floorY = state.mode === 'tray' ? 0.30 : state.mode === 'tower' ? 0.92 : 0.08;
+    const floorY = photoTray ? 0.08 : state.mode === 'tray' ? 0.30 : state.mode === 'tower' ? 0.92 : 0.08;
     const rowOffset = position[1] - 0.53;
     const restY = floorY + dieRestHeight(shape, size, squash) + rowOffset;
     addPolyhedron(
       mesh,
       shape,
-      [position[0], restY + bounce, position[2] + (state.mode === 'tower' ? 1.18 : state.mode === 'tray' ? 0.16 : 0)],
+      [position[0], restY + bounce, position[2] + (state.mode === 'tower' ? 1.18 : state.mode === 'tray' && !photoTray ? 0.16 : 0)],
       size,
       dieMaterial,
       dieAccent,
@@ -724,6 +725,7 @@ function toUint16(values) {
 }
 
 export const WEBGL_PROFILE = 'adel-dice-webgl-v1';
+const REFERENCE_TRAY_SKIN = 'reference-lacquer';
 
 export function createWebglScene(canvas, options = {}) {
   if (!canvas) throw new Error('webgl-canvas-missing');
@@ -763,6 +765,13 @@ export function createWebglScene(canvas, options = {}) {
       view = lookAt([7.8, 9.2, 8.4], [0, 0.25, -0.05], [0, 1, 0]);
       return;
     }
+    if (renderState.mode === 'tray' && normalizeAppearance(renderState.appearance).tray === REFERENCE_TRAY_SKIN) {
+      // The reference photo is the tray surface in this skin. Keep only the
+      // real WebGL die on top of it and match the photo's shallow product-shot
+      // perspective instead of drawing a second procedural container.
+      view = lookAt([6.15, 7.15, 7.25], [0, 0.34, 0.10], [0, 1, 0]);
+      return;
+    }
     // 3/4 isometric angle: the far rim, tray depth and the rear lamp remain
     // visible while the dice still occupy the visual center of the desk.
     view = lookAt([6.8, 8.6, 7.4], [0, 0.42, 0.05], [0, 1, 0]);
@@ -795,7 +804,8 @@ export function createWebglScene(canvas, options = {}) {
     }
     gl.viewport(0, 0, width, height);
     updateCamera();
-    projection = perspective(renderState.mode === 'tower' ? Math.PI / 3.25 : Math.PI / 3.0, width / height, 0.1, 50);
+    const referenceTray = renderState.mode === 'tray' && normalizeAppearance(renderState.appearance).tray === REFERENCE_TRAY_SKIN;
+    projection = perspective(renderState.mode === 'tower' ? Math.PI / 3.25 : referenceTray ? Math.PI / 3.35 : Math.PI / 3.0, width / height, 0.1, 50);
   }
 
   function draw(time) {

@@ -13,13 +13,13 @@ import {
   normalizeAppearance,
   renderDice,
   renderSkinMenus,
-} from './scene.js?v=3';
-import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js?v=3';
+} from './scene.js?v=4';
+import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js?v=4';
 import { triggerDiceFeedback } from './feedback.js?v=1';
 
-// v3 starts a clean desk so state from the previous tower candidate cannot
-// become the normal landing screen after the visual reset.
-const STORAGE_KEY = 'new-dice-roller-state-v3';
+// v4 starts on the photographic rectangular tray skin so the new reference
+// cannot be hidden by an older locally persisted appearance.
+const STORAGE_KEY = 'new-dice-roller-state-v4';
 const QA_PROFILE = WEBGL_PROFILE;
 const HISTORY_LIMIT = 40;
 const MODE_LABELS = Object.freeze({ table: 'СТОЛ', tray: 'ЛОТОК', tower: 'БАШНЯ' });

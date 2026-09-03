@@ -14,6 +14,7 @@ export const SCENE_SKINS = Object.freeze({
     Object.freeze({ id: 'prismatic-glass', name: 'Prismatic Glass', description: 'Прозрачный сине-зелёный сплав с радужной гранью.', body: '#3d6170', accent: '#9de8df', highlight: '#ecffff', family: 'prism' }),
   ]),
   tray: Object.freeze([
+    Object.freeze({ id: 'reference-lacquer', name: 'Black Filigree Box', description: 'Точный фото-референс прямоугольного чёрного лотка с медной гравировкой.', floor: '#161415', wall: '#171313', rim: '#ae744e', accent: '#d8a16f', family: 'reference', referenceImage: './assets/tray-reference.jpg' }),
     Object.freeze({ id: 'dusk-oak', name: 'Butterfly Slate', description: 'Графитовый лоток с медной бабочкой и мягким тёмным дном.', floor: '#10161d', wall: '#2b3540', rim: '#73808a', accent: '#d3a06a', family: 'butterfly' }),
     Object.freeze({ id: 'star-covenant', name: 'Star Covenant', description: 'Сланцевое дно, созвездия и холодная бронза.', floor: '#101724', wall: '#202b40', rim: '#7c9bc1', accent: '#c7d9f6', family: 'star' }),
     Object.freeze({ id: 'moss-and-brass', name: 'Moss & Brass', description: 'Зелёный текстиль с медным сигилом.', floor: '#10201c', wall: '#1e3b31', rim: '#b68b51', accent: '#cbd899', family: 'moss' }),
@@ -34,7 +35,7 @@ export const SCENE_SKINS = Object.freeze({
 
 export const DEFAULT_APPEARANCE = Object.freeze({
   dice: 'obsidian-ember',
-  tray: 'dusk-oak',
+  tray: 'reference-lacquer',
   tower: 'brass-arc',
   table: 'obsidian-desk',
 });
@@ -66,6 +67,10 @@ export function applyAppearanceToStage(stage, appearance, mode) {
   stage.style.setProperty('--table-edge', getSkin('table', normalized.table)?.edge || '#252e2a');
   stage.style.setProperty('--table-accent', getSkin('table', normalized.table)?.accent || '#b99458');
   stage.style.setProperty('--table-background', getSkin('table', normalized.table)?.background || '#070b0a');
+  stage.style.setProperty('--tray-floor', getSkin('tray', normalized.tray)?.floor || '#171414');
+  stage.style.setProperty('--tray-wall', getSkin('tray', normalized.tray)?.wall || '#39261d');
+  stage.style.setProperty('--tray-rim', getSkin('tray', normalized.tray)?.rim || '#c7975b');
+  stage.style.setProperty('--tray-accent', getSkin('tray', normalized.tray)?.accent || '#e6c986');
 }
 
 function makePreviewElement(documentLike, category, skin) {
@@ -85,7 +90,7 @@ function makePreviewElement(documentLike, category, skin) {
     preview.append(die);
   } else if (category === 'tray') {
     const tray = documentLike.createElement('span');
-    tray.className = 'mini-tray';
+    tray.className = `mini-tray${skin.family === 'reference' ? ' mini-tray-reference' : ''}`;
     if (skin.family === 'butterfly') {
       const butterfly = documentLike.createElement('i');
       butterfly.className = 'mini-butterfly';

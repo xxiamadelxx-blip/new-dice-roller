@@ -228,6 +228,21 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
   height: 100%;
 }
 
+.reference-tray-image {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 51%;
+  opacity: 0;
+  filter: saturate(.86) contrast(1.08) brightness(.78);
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+
 .scene-atmosphere,
 .scene-stars,
 .scene-light { position: absolute; pointer-events: none; }
@@ -369,6 +384,27 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
 .scene-stage[data-tray-skin="star-covenant"] .scene-tray-object { --tray-floor: #101724; --tray-wall: #202b40; --tray-accent: #c7d9f6; --preview-rim: #7c9bc1; }
 .scene-stage[data-tray-skin="moss-and-brass"] .scene-tray-object { --tray-floor: #10201c; --tray-wall: #1e3b31; --tray-accent: #cbd899; --preview-rim: #b68b51; }
 .scene-stage[data-tray-skin="crimson-forge"] .scene-tray-object { --tray-floor: #271315; --tray-wall: #4d2021; --tray-accent: #f5ad75; --preview-rim: #cc714d; }
+
+.scene-stage[data-mode="tray"][data-tray-skin="reference-lacquer"] .reference-tray-image {
+  opacity: 1;
+}
+
+.scene-stage[data-mode="tray"][data-tray-skin="reference-lacquer"] .scene-stars,
+.scene-stage[data-mode="tray"][data-tray-skin="reference-lacquer"] .scene-tray-object,
+.scene-stage[data-mode="tray"][data-tray-skin="reference-lacquer"] .scene-table-object {
+  opacity: 0;
+}
+
+.scene-stage[data-mode="tray"][data-tray-skin="reference-lacquer"]::after {
+  position: absolute;
+  z-index: 1.5;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(78, 41, 22, .16), transparent 32%, rgba(20, 8, 4, .18)),
+    radial-gradient(circle at 14% 18%, rgba(243, 164, 92, .20), transparent 30%);
+  content: "";
+  pointer-events: none;
+}
 
 .scene-tower-object {
   z-index: 3;
@@ -640,6 +676,9 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .mini-tray { position: relative; z-index: 1; width: 63px; height: 48px; clip-path: polygon(10% 0, 90% 0, 100% 18%, 100% 82%, 90% 100%, 10% 100%, 0 82%, 0 18%); background: var(--preview-accent); box-shadow: 0 7px 8px rgba(0, 0, 0, .35); }
 .mini-tray::before { position: absolute; inset: 5px; clip-path: inherit; background: var(--preview-dark); content: ""; }
 .mini-tray::after { position: absolute; inset: 14px 20px; border: 1px solid var(--preview-accent); border-radius: 50%; content: ""; }
+.mini-tray-reference { clip-path: none; border: 1px solid color-mix(in srgb, var(--preview-accent) 80%, #17100e 20%); border-radius: 8px; background: linear-gradient(145deg, rgba(255, 218, 170, .16), transparent 28%), var(--preview-dark); box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .28), 0 7px 8px rgba(0, 0, 0, .35); }
+.mini-tray-reference::before { inset: 6px; clip-path: none; border: 1px solid color-mix(in srgb, var(--preview-accent) 52%, transparent); border-radius: 3px; background: radial-gradient(circle at 50% 50%, rgba(216, 161, 111, .18), transparent 38%), #181414; }
+.mini-tray-reference::after { inset: 16px 23px; border-color: color-mix(in srgb, var(--preview-accent) 78%, transparent); border-radius: 3px; transform: rotate(45deg); }
 .mini-butterfly { position: absolute; z-index: 3; top: 11px; left: 50%; width: 2px; height: 24px; border-radius: 50%; background: var(--preview-accent); transform: translateX(-50%) rotate(-4deg); }
 .mini-butterfly::before,
 .mini-butterfly::after { position: absolute; top: 1px; width: 20px; height: 14px; border: 1px solid var(--preview-accent); border-radius: 85% 25% 72% 28%; content: ""; }
@@ -703,6 +742,7 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
    transparent backdrop for the canvas, never a 2D fallback renderer. */
 .scene-stage .scene-atmosphere { display: block; z-index: 0; }
 .scene-stage .scene-stars { display: block; z-index: 1; }
+.scene-stage .reference-tray-image { display: block; }
 .scene-stage .scene-light { display: block; z-index: 5; }
 .scene-stage .scene-object { display: none; }
 .scene-stage.webgl-active .die-token { filter: none; }
