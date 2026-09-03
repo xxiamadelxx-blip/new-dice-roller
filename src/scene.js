@@ -7,6 +7,11 @@ export const SCENE_SKINS = Object.freeze({
     Object.freeze({ id: 'verdant-rite', name: 'Verdant Rite', description: 'Глубокий зелёный камень и старое золото.', body: '#1f4a3d', accent: '#c7d48b', highlight: '#e8f2ba', family: 'verdant' }),
     Object.freeze({ id: 'bloodglass', name: 'Bloodglass', description: 'Прозрачный рубиновый жар под медной цифрой.', body: '#6d202b', accent: '#ffb177', highlight: '#ffd6a8', family: 'bloodglass' }),
     Object.freeze({ id: 'opal-veil', name: 'Opal Veil', description: 'Молочный опал с голубым иридисцентным бликом.', body: '#c9d2d2', accent: '#719fc2', highlight: '#f4f8ed', family: 'opal' }),
+    Object.freeze({ id: 'bloodstone-rite', name: 'Bloodstone Rite', description: 'Тёмный яшмовый камень с мшистыми вкраплениями.', body: '#3c282c', accent: '#9bb873', highlight: '#e6d0a0', family: 'bloodstone' }),
+    Object.freeze({ id: 'amethyst-fluorite', name: 'Amethyst Fluorite', description: 'Фиолетовый флюорит с холодным лиловым свечением.', body: '#302247', accent: '#b691f1', highlight: '#f0ddff', family: 'fluorite' }),
+    Object.freeze({ id: 'blue-sandstone', name: 'Blue Sandstone', description: 'Ночное синее стекло с россыпью светлых граней.', body: '#163653', accent: '#70c7df', highlight: '#d5fbff', family: 'sandstone' }),
+    Object.freeze({ id: 'rose-quartz', name: 'Rose Quartz', description: 'Пыльно-розовый кварц с тёплым жемчужным бликом.', body: '#6e424d', accent: '#efb6c2', highlight: '#fff0e6', family: 'quartz' }),
+    Object.freeze({ id: 'prismatic-glass', name: 'Prismatic Glass', description: 'Прозрачный сине-зелёный сплав с радужной гранью.', body: '#3d6170', accent: '#9de8df', highlight: '#ecffff', family: 'prism' }),
   ]),
   tray: Object.freeze([
     Object.freeze({ id: 'dusk-oak', name: 'Dusk Oak', description: 'Тёмное дерево, мягкая кожа и латунная окантовка.', floor: '#171414', wall: '#39261d', rim: '#c7975b', accent: '#e6c986', family: 'wood' }),
@@ -70,6 +75,7 @@ function makePreviewElement(documentLike, category, skin) {
   preview.style.setProperty('--preview-dark', skin.dark || skin.wall || skin.edge || '#090909');
   preview.style.setProperty('--preview-accent', skin.accent || skin.rim || '#c99d5a');
   preview.style.setProperty('--preview-metal', skin.metal || skin.rim || skin.accent || '#c99d5a');
+  preview.style.setProperty('--preview-highlight', skin.highlight || skin.accent || skin.rim || '#c99d5a');
 
   if (category === 'dice') {
     const die = documentLike.createElement('span');
@@ -150,9 +156,18 @@ function makeDieToken(documentLike, value, die, skin, index, phase) {
   return token;
 }
 
-export function renderDice(documentLike, root, event, appearance, phase = 'idle') {
+export function renderDice(documentLike, root, event, appearance, phase = 'idle', rendererStatus = 'ready') {
   if (!root) return;
   root.replaceChildren();
+  if (rendererStatus !== 'ready') {
+    const blocked = documentLike.createElement('div');
+    blocked.className = `dice-empty dice-empty-${rendererStatus}`;
+    blocked.innerHTML = rendererStatus === 'failed'
+      ? '<span>!</span><strong>WebGL-сцена недоступна</strong><small>Бросок заблокирован до восстановления 3D-рендера</small>'
+      : '<span>✦</span><strong>3D-сцена загружается</strong><small>Результат появится после готовности WebGL</small>';
+    root.append(blocked);
+    return;
+  }
   if (!event) {
     const empty = documentLike.createElement('div');
     empty.className = 'dice-empty';
