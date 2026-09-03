@@ -1,16 +1,16 @@
 :root {
-  --ink: #080c0c;
-  --panel: #101615;
-  --panel-soft: #141b19;
-  --panel-raised: #18201d;
-  --line: rgba(222, 193, 128, .16);
+  --ink: #0d0e11;
+  --panel: #17191c;
+  --panel-soft: #1d2024;
+  --panel-raised: #252a30;
+  --line: rgba(214, 166, 112, .20);
   --line-soft: rgba(255, 255, 255, .07);
-  --paper: #efe9dc;
-  --muted: #8b928a;
-  --muted-dark: #5b645e;
-  --gold: #d6b36c;
-  --gold-bright: #f1d497;
-  --green: #8bc49c;
+  --paper: #f1e8dc;
+  --muted: #9a978e;
+  --muted-dark: #686a68;
+  --gold: #c18b5c;
+  --gold-bright: #e5b879;
+  --green: #8dc5a8;
   --danger: #e28d82;
   --shadow: rgba(0, 0, 0, .38);
   color-scheme: dark;
@@ -28,8 +28,9 @@ body {
   margin: 0;
   color: var(--paper);
   background:
-    radial-gradient(circle at 50% -14%, rgba(92, 127, 96, .16), transparent 35rem),
-    linear-gradient(145deg, #080d0c 0%, #0a100f 48%, #070a0a 100%);
+    radial-gradient(circle at 50% -16%, rgba(92, 117, 146, .20), transparent 31rem),
+    radial-gradient(circle at 8% 42%, rgba(155, 99, 61, .10), transparent 24rem),
+    linear-gradient(145deg, #101216 0%, #0d0f13 52%, #08090c 100%);
 }
 
 button, input { font: inherit; }
@@ -176,7 +177,7 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
 .qa-panel {
   border: 1px solid var(--line);
   border-radius: 22px;
-  background: linear-gradient(145deg, rgba(20, 28, 25, .92), rgba(10, 15, 14, .96));
+  background: linear-gradient(145deg, rgba(28, 31, 34, .94), rgba(12, 14, 18, .97));
   box-shadow: 0 22px 55px rgba(0, 0, 0, .20), inset 0 1px rgba(255, 255, 255, .035);
 }
 
@@ -211,8 +212,9 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(circle at 50% 42%, rgba(199, 164, 92, .12), transparent 35%),
-    var(--table-background, #070b0a);
+    radial-gradient(circle at 50% 40%, rgba(197, 143, 91, .15), transparent 42%),
+    linear-gradient(150deg, rgba(58, 74, 91, .16), transparent 45%),
+    var(--table-background, #0b0e12);
 }
 
 .scene-canvas {
@@ -232,8 +234,8 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
   inset: 0;
   z-index: -3;
   background:
-    radial-gradient(ellipse at 50% 104%, rgba(19, 39, 31, .90), transparent 64%),
-    linear-gradient(135deg, rgba(255, 255, 255, .025), transparent 36%);
+    radial-gradient(ellipse at 50% 104%, rgba(33, 47, 60, .82), transparent 66%),
+    linear-gradient(135deg, rgba(255, 255, 255, .045), transparent 36%);
 }
 
 .scene-stars { inset: 9% 9% auto; z-index: 0; height: 54%; opacity: .6; }
@@ -246,8 +248,8 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
 .scene-stars i:nth-child(6) { top: 48%; left: 92%; width: 1px; height: 1px; }
 
 .scene-light { z-index: 4; width: 25%; height: 36%; filter: blur(24px); opacity: .22; }
-.scene-light-left { top: -3%; left: -4%; background: #d9b36c; transform: rotate(35deg); }
-.scene-light-right { right: -7%; bottom: -10%; background: #6d9bc3; transform: rotate(-20deg); }
+.scene-light-left { top: -3%; left: -4%; background: #c58659; transform: rotate(35deg); }
+.scene-light-right { right: -7%; bottom: -10%; background: #7295ba; transform: rotate(-20deg); }
 
 .scene-object { position: absolute; pointer-events: none; }
 
@@ -636,6 +638,11 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .mini-tray { position: relative; z-index: 1; width: 63px; height: 48px; clip-path: polygon(10% 0, 90% 0, 100% 18%, 100% 82%, 90% 100%, 10% 100%, 0 82%, 0 18%); background: var(--preview-accent); box-shadow: 0 7px 8px rgba(0, 0, 0, .35); }
 .mini-tray::before { position: absolute; inset: 5px; clip-path: inherit; background: var(--preview-dark); content: ""; }
 .mini-tray::after { position: absolute; inset: 14px 20px; border: 1px solid var(--preview-accent); border-radius: 50%; content: ""; }
+.mini-butterfly { position: absolute; z-index: 3; top: 11px; left: 50%; width: 2px; height: 24px; border-radius: 50%; background: var(--preview-accent); transform: translateX(-50%) rotate(-4deg); }
+.mini-butterfly::before,
+.mini-butterfly::after { position: absolute; top: 1px; width: 20px; height: 14px; border: 1px solid var(--preview-accent); border-radius: 85% 25% 72% 28%; content: ""; }
+.mini-butterfly::before { right: 2px; transform: rotate(20deg); transform-origin: right bottom; }
+.mini-butterfly::after { left: 2px; transform: scaleX(-1) rotate(20deg); transform-origin: left bottom; }
 
 .mini-tower { position: relative; z-index: 1; width: 34px; height: 59px; border: 1px solid var(--preview-metal); border-radius: 5px; background: linear-gradient(90deg, var(--preview-metal), var(--preview-body) 17%, var(--preview-dark) 75%, var(--preview-metal)); box-shadow: 0 7px 8px rgba(0, 0, 0, .36); }
 .mini-tower::before, .mini-tower::after { position: absolute; left: -5px; width: 42px; height: 9px; border: 1px solid var(--preview-metal); background: var(--preview-body); content: ""; }
@@ -707,6 +714,34 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .scene-stage.webgl-active .die-shell::before,
 .scene-stage.webgl-active .die-shell::after { display: none; }
 .scene-stage.webgl-active .die-shell-value { text-shadow: 0 2px 0 rgba(0, 0, 0, .55), 0 0 14px color-mix(in srgb, var(--die-accent) 58%, transparent); }
+
+/* The WebGL mesh is the die. The DOM copy remains available to assistive
+   technology, but must not float as a giant unrelated number over the mesh. */
+.scene-stage.webgl-active .dice-cluster.has-result {
+  top: auto;
+  right: 8px;
+  bottom: 8px;
+  left: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scene-stage.webgl-active .dice-cluster.has-result .die-token {
+  width: 1px;
+  height: 1px;
+}
+
+.scene-stage.webgl-active .dice-cluster.has-result .die-shell-value,
+.scene-stage.webgl-active .dice-cluster.has-result .die-shell-type,
+.scene-stage.webgl-active .dice-cluster.has-result .die-shell-mark {
+  opacity: 0;
+}
+
+.scene-headline { border-bottom: 1px solid rgba(214, 166, 112, .10); }
+.scene-footer { border-top: 1px solid rgba(255, 255, 255, .035); }
 
 @media (min-width: 700px) {
   .app-shell { padding-right: 24px; padding-left: 24px; }
