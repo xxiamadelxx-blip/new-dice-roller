@@ -16,15 +16,17 @@ import {
   renderSkinCards,
   SKIN_CATEGORIES,
 } from './scene.js';
+import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js';
 
 const STORAGE_KEY = 'new-dice-roller-state-v1';
-const QA_PROFILE = 'new-dice-roller-scene-v1';
+const QA_PROFILE = WEBGL_PROFILE;
 const HISTORY_LIMIT = 40;
 const MODE_LABELS = Object.freeze({ table: 'СТОЛ', tray: 'ЛОТОК', tower: 'БАШНЯ' });
 const CATEGORY_LABELS = Object.freeze({ dice: 'Кости', tray: 'Лоток', tower: 'Башня', table: 'Фон' });
 
 const refs = {
   stage: document.getElementById('scene-stage'),
+  sceneCanvas: document.getElementById('scene-canvas'),
   diceCluster: document.getElementById('dice-cluster'),
   rollButton: document.getElementById('roll-button'),
   rollButtonFormula: document.getElementById('roll-button-formula'),
@@ -53,10 +55,11 @@ let activeView = 'roll';
 let activeSkinCategory = 'dice';
 let toastTimer = 0;
 let rollTimer = 0;
+let sceneRenderer = null;
 let state = loadState();
 const qaState = {
   profile: QA_PROFILE,
-  renderer: 'css3d-dom-v1',
+  renderer: 'webgl2-canvas-v1',
   rendererStatus: 'pending',
   fallback: false,
   phase: state.lastRoll ? 'settled' : 'idle',
@@ -259,6 +262,13 @@ function renderScene() {
   if (!refs.stage) return;
   applyAppearanceToStage(refs.stage, state.appearance, state.request.mode);
   renderDice(document, refs.diceCluster, state.lastRoll, state.appearance, state.phase);
+  sceneRenderer?.render({
+    mode: state.request.mode,
+    appearance: state.appearance,
+    die: state.request.die,
+    outcomes: state.lastRoll?.outcomes || [],
+    phase: state.phase,
+  });
   refs.sceneModeReadout.textContent = MODE_LABELS[state.request.mode];
   refs.scenePhase.textContent = state.phase === 'rolling'
     ? 'БРОСОК В ДВИЖЕНИИ'
@@ -270,7 +280,7 @@ function renderScene() {
   refs.resultTotal.textContent = state.lastRoll ? String(state.lastRoll.finalTotal) : '—';
   refs.resultFormula.textContent = state.lastRoll ? formatRollSummary(state.lastRoll) : 'Бросок ещё не сделан';
   refs.resultCard.dataset.phase = state.phase;
-  refs.rollButton.disabled = state.phase === 'rolling';
+  refs.rollButton.disabled = state.phase === 'rolling' || qaState.rendererStatus === 'failed';
   refs.rollButton.setAttribute('aria-busy', state.phase === 'rolling' ? 'true' : 'false');
   qaState.frame += 1;
   qaState.captureId = `candidate-${String(qaState.frame).padStart(4, '0')}`;
@@ -353,6 +363,10 @@ function setView(view) {
 
 function performRoll() {
   if (state.phase === 'rolling') return;
+  if (qaState.rendererStatus !== 'ready') {
+    showToast('WebGL-сцена недоступна');
+    return;
+  }
   let event;
   try {
     event = createRoll(state.request);
@@ -433,19 +447,33 @@ async function copyManifest() {
   showToast(copied ? 'QA manifest скопирован' : 'Не удалось скопировать manifest');
 }
 
-function detectRenderer() {
-  const probe = document.createElement('div');
-  const transformSupported = Boolean(probe.style && 'transform' in probe.style);
-  const preserve3dSupported = window.CSS?.supports
-    ? window.CSS.supports('transform-style', 'preserve-3d')
-    : transformSupported;
-  if (!transformSupported || !preserve3dSupported) {
-    setQa({ rendererStatus: 'failed', fallback: false, phase: 'error', lastError: 'css3d-unsupported', errorCount: qaState.errorCount + 1 });
-    refs.headerState.innerHTML = '<span class="state-dot"></span><span>RENDERER BLOCKED</span>';
-    return;
+function handleRendererFailure(error) {
+  sceneRenderer = null;
+  refs.stage?.classList.remove('webgl-active');
+  refs.rollButton.disabled = true;
+  refs.scenePhase.textContent = 'WEBGL БЛОКИРОВАН';
+  setQa({
+    renderer: 'webgl2-canvas-v1',
+    rendererStatus: 'failed',
+    fallback: false,
+    phase: 'error',
+    lastError: error?.message || String(error),
+    errorCount: qaState.errorCount + 1,
+  });
+  refs.headerState.innerHTML = '<span class="state-dot"></span><span>RENDERER BLOCKED</span>';
+  showToast('Нужен WebGL 2 — fallback отключён');
+}
+
+function initializeRenderer() {
+  try {
+    sceneRenderer = createWebglScene(refs.sceneCanvas, { onContextLost: handleRendererFailure });
+    refs.stage.classList.add('webgl-active');
+    setQa({ renderer: sceneRenderer.renderer, rendererStatus: 'ready', fallback: false, phase: state.lastRoll ? 'settled' : 'idle', lastError: null });
+    refs.headerState.innerHTML = '<span class="state-dot"></span><span>WEBGL СЦЕНА ГОТОВА</span>';
+    renderScene();
+  } catch (error) {
+    handleRendererFailure(error);
   }
-  setQa({ rendererStatus: 'ready', fallback: false, phase: state.lastRoll ? 'settled' : 'idle', lastError: null });
-  refs.headerState.innerHTML = '<span class="state-dot"></span><span>СЦЕНА ГОТОВА</span>';
 }
 
 function bindEvents() {
@@ -469,7 +497,10 @@ function bindEvents() {
   }));
   refs.qaFixture?.addEventListener('click', loadFixture);
   refs.qaManifest?.addEventListener('click', copyManifest);
-  window.addEventListener('resize', renderQa, { passive: true });
+  window.addEventListener('resize', () => {
+    sceneRenderer?.resize();
+    renderScene();
+  }, { passive: true });
   window.addEventListener('error', (event) => setQa({ errorCount: qaState.errorCount + 1, lastError: String(event.message || 'window-error').slice(0, 160) }));
   window.addEventListener('unhandledrejection', (event) => setQa({ errorCount: qaState.errorCount + 1, lastError: String(event.reason?.message || event.reason || 'unhandled-rejection').slice(0, 160) }));
 }
@@ -480,5 +511,5 @@ renderControls();
 renderHistory();
 renderSkinStudio();
 renderScene();
-detectRenderer();
+initializeRenderer();
 setView('roll');
