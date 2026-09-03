@@ -13,7 +13,7 @@ export function setQaState(key, value) {
   localState[key] = value;
   if (typeof document !== "undefined") {
     const dataKey = key.replaceAll(".", "-");
-    document.documentElement.dataset[dataKey] = String(value);
+    document.documentElement.setAttribute(`data-${dataKey}`, String(value));
   }
   const bridge = typeof window !== "undefined" ? window.__O_BROWSER_QA__ : null;
   if (bridge && typeof bridge.setState === "function") {
