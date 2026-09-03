@@ -34,16 +34,24 @@ out vec4 out_color;
 
 void main() {
   vec3 normal = normalize(v_normal);
-  vec3 primary_light = normalize(vec3(-0.45, 0.88, 0.72));
+  vec3 primary_light = normalize(vec3(-0.55, 0.96, 0.62));
+  vec3 fill_light = normalize(vec3(0.70, 0.40, -0.72));
   vec3 rim_light = normalize(vec3(0.72, 0.28, -0.65));
-  float diffuse = 0.34 + max(dot(normal, primary_light), 0.0) * 0.64;
-  float rim = pow(1.0 - max(dot(normal, rim_light), 0.0), 3.0) * 0.14;
+  float key = max(dot(normal, primary_light), 0.0);
+  float fill = max(dot(normal, fill_light), 0.0);
+  float diffuse = 0.28 + key * 0.68 + fill * 0.18;
+  float rim = pow(1.0 - max(dot(normal, rim_light), 0.0), 3.0) * 0.16;
   float grain = sin(dot(v_world * vec3(1.15, 0.72, 1.38), vec3(12.9898, 78.233, 37.719)));
   float mineral = (grain * 0.5 + 0.5) * 0.055;
-  float ember = (sin(u_time * 0.0014 + v_world.x * 0.7 + v_world.z * 0.35) + 1.0) * 0.018;
+  float ember = (sin(u_time * 0.0017 + v_world.x * 0.7 + v_world.z * 0.35) + 1.0) * 0.024;
+  float lampDistance = distance(v_world.xz, vec2(-3.0, -1.8));
+  float lampGlow = max(0.0, 1.0 - lampDistance / 5.2) * 0.15;
+  vec3 warmLight = vec3(1.0, 0.62, 0.30);
+  vec3 coolFill = vec3(0.68, 0.76, 0.86);
+  vec3 lightColor = mix(coolFill, warmLight, clamp(0.26 + key * 0.48 + lampGlow, 0.0, 0.92));
   vec3 half_vector = normalize(primary_light + vec3(0.0, 0.75, 0.55));
-  float specular = pow(max(dot(normal, half_vector), 0.0), 28.0) * 0.20;
-  out_color = vec4(v_color.rgb * (diffuse + rim + mineral + ember) + specular, v_color.a);
+  float specular = pow(max(dot(normal, half_vector), 0.0), 28.0) * (0.16 + lampGlow * 0.44);
+  out_color = vec4(v_color.rgb * (diffuse + rim + mineral + ember) * lightColor + specular * warmLight, v_color.a);
 }
 `;
 
@@ -190,6 +198,31 @@ function addRing(mesh, center, outerRadii, innerRadii, y, color, sides = 8, rota
   }
 }
 
+function addWallRing(mesh, center, outerRadii, innerRadii, bottomY, topY, outerColor, innerColor, topColor, sides = 8, rotation = Math.PI / 8) {
+  const outerBottom = [];
+  const outerTop = [];
+  const innerBottom = [];
+  const innerTop = [];
+  for (let index = 0; index < sides; index += 1) {
+    const angle = rotation + index * Math.PI * 2 / sides;
+    const cosine = Math.cos(angle);
+    const sine = Math.sin(angle);
+    outerBottom.push(add(center, [cosine * outerRadii[0], bottomY, sine * outerRadii[1]]));
+    outerTop.push(add(center, [cosine * outerRadii[0], topY, sine * outerRadii[1]]));
+    innerBottom.push(add(center, [cosine * innerRadii[0], bottomY, sine * innerRadii[1]]));
+    innerTop.push(add(center, [cosine * innerRadii[0], topY, sine * innerRadii[1]]));
+  }
+  for (let index = 0; index < sides; index += 1) {
+    const next = (index + 1) % sides;
+    const outerFace = [outerBottom[index], outerBottom[next], outerTop[next], outerTop[index]];
+    const innerFace = [innerTop[next], innerTop[index], innerBottom[index], innerBottom[next]];
+    const lip = [outerTop[index], outerTop[next], innerTop[next], innerTop[index]];
+    pushQuad(mesh, outerFace, normalize(cross(sub(outerFace[1], outerFace[0]), sub(outerFace[2], outerFace[0]))), tint(outerColor, (index % 3 - 1) * 0.035));
+    pushQuad(mesh, innerFace, normalize(cross(sub(innerFace[1], innerFace[0]), sub(innerFace[2], innerFace[0]))), tint(innerColor, (index % 2) * 0.04));
+    pushQuad(mesh, lip, [0, 1, 0], tint(topColor, (index % 2) * 0.045));
+  }
+}
+
 function addTopSegment(mesh, start, end, y, width, color) {
   const dx = end[0] - start[0];
   const dz = end[1] - start[1];
@@ -255,7 +288,8 @@ function addButterfly(mesh, center, y, color) {
   const [cx, cz] = center;
   const bright = tint(color, 0.16);
   const shadow = tint(color, -0.22);
-  const translate = (points, mirror = false) => points.map(([x, z]) => [cx + (mirror ? -x : x), cz + z]);
+  const scaleValue = 1.18;
+  const translate = (points, mirror = false) => points.map(([x, z]) => [cx + (mirror ? -x : x) * scaleValue, cz + z * scaleValue]);
   const upper = [
     [-0.06, 0.05], [-0.34, 0.62], [-0.96, 0.72], [-1.28, 0.38],
     [-1.10, 0.02], [-0.46, -0.08],
@@ -270,7 +304,7 @@ function addButterfly(mesh, center, y, color) {
   addTopPolygon(mesh, translate(lower, true), y + 0.002, shadow);
 
   const stroke = tint(color, -0.04);
-  const line = (from, to, lineColor = stroke, width = 0.022) => addTopSegment(mesh, [cx + from[0], cz + from[1]], [cx + to[0], cz + to[1]], y + 0.009, width, lineColor);
+  const line = (from, to, lineColor = stroke, width = 0.022) => addTopSegment(mesh, [cx + from[0] * scaleValue, cz + from[1] * scaleValue], [cx + to[0] * scaleValue, cz + to[1] * scaleValue], y + 0.009, width, lineColor);
   [[-0.06, 0.05], [-0.34, 0.62], [-0.96, 0.72], [-1.28, 0.38], [-1.10, 0.02], [-0.46, -0.08], [-0.06, 0.05]].forEach((point, index, points) => line(point, points[(index + 1) % points.length]));
   upper.forEach((point, index) => {
     if (index < 2 || index > 3) line([-0.06, 0.05], point, shadow, 0.014);
@@ -281,10 +315,10 @@ function addButterfly(mesh, center, y, color) {
   lower.forEach((point, index, points) => line([-0.06, -0.02], point, shadow, index === points.length - 1 ? 0.014 : 0.012));
   lower.forEach((point, index, points) => line([0.06, -0.02], [-point[0], point[1]], shadow, index === points.length - 1 ? 0.014 : 0.012));
 
-  addPrism(mesh, [cx, y + 0.018, cz - 0.06], [0.09, 0.47], 0.055, 10, stroke, 0);
-  addTopDot(mesh, [cx, cz + 0.26], y + 0.055, 0.075, bright);
-  addTopArc(mesh, [cx - 0.05, cz + 0.37], [0.34, 0.22], Math.PI * 1.08, Math.PI * 1.66, y + 0.012, 0.014, stroke, 10);
-  addTopArc(mesh, [cx + 0.05, cz + 0.37], [0.34, 0.22], -Math.PI * 0.66, -Math.PI * 0.08, y + 0.012, 0.014, stroke, 10);
+  addPrism(mesh, [cx, y + 0.018, cz - 0.07 * scaleValue], [0.10, 0.52], 0.055, 10, stroke, 0);
+  addTopDot(mesh, [cx, cz + 0.26 * scaleValue], y + 0.055, 0.075, bright);
+  addTopArc(mesh, [cx - 0.05 * scaleValue, cz + 0.37 * scaleValue], [0.36 * scaleValue, 0.23 * scaleValue], Math.PI * 1.08, Math.PI * 1.66, y + 0.012, 0.014, stroke, 10);
+  addTopArc(mesh, [cx + 0.05 * scaleValue, cz + 0.37 * scaleValue], [0.36 * scaleValue, 0.23 * scaleValue], -Math.PI * 0.66, -Math.PI * 0.08, y + 0.012, 0.014, stroke, 10);
 }
 
 function addTopDot(mesh, center, y, radius, color) {
@@ -426,6 +460,11 @@ function dieShape(dieId) {
   return { shape: icosahedron(), size: die.id === 'd100' ? 0.72 : 0.65, squash: die.id === 'd100' ? [1.06, 0.92, 1.06] : [1, 1, 1] };
 }
 
+function dieRestHeight(shape, size, squash) {
+  const highestPoint = shape.vertices.reduce((highest, vertex) => Math.max(highest, vertex[1] * squash[1]), 0);
+  return highestPoint * size;
+}
+
 function layoutDice(count) {
   const columns = count <= 4 ? count : Math.min(4, count);
   const rows = Math.ceil(count / columns);
@@ -453,6 +492,28 @@ function addTableOrnament(mesh, tableSkin) {
   addTopDot(mesh, [0, 0], y + 0.004, 0.045, accent);
 }
 
+function addDeskProps(mesh, tableSkin) {
+  const wood = parseHex(tableSkin.edge);
+  const leather = parseHex('#241717');
+  const brass = parseHex('#9c633b');
+  const candle = parseHex('#d78c4f');
+  const flame = parseHex('#ffd98d');
+
+  // A small candle/lamp at the rear-left gives the desk the same warm pool of
+  // light as the physical reference, while remaining fully procedural.
+  addPrism(mesh, [-3.16, 0.08, -1.86], [0.62, 0.44], 0.12, 16, tint(brass, -0.16));
+  addPrism(mesh, [-3.16, 0.56, -1.86], [0.34, 0.30], 0.88, 16, candle);
+  addPrism(mesh, [-3.16, 1.05, -1.86], [0.12, 0.10], 0.28, 10, flame);
+  addTopDot(mesh, [-3.16, -1.86], 1.22, 0.10, flame);
+
+  // Two closed books in the background make the desk read as a physical
+  // gaming table rather than a floating CAD demonstration.
+  addBox(mesh, [2.98, 0.10, -2.34], [2.25, 0.16, 0.72], leather, [0.02, -0.04, -0.02]);
+  addBox(mesh, [3.02, 0.24, -2.30], [2.06, 0.12, 0.64], wood, [0.02, -0.04, -0.02]);
+  addBox(mesh, [3.08, 0.35, -2.25], [1.82, 0.08, 0.54], leather, [0.02, -0.04, -0.02]);
+  addTopSegment(mesh, [2.35, -2.25], [3.80, -2.25], 0.405, 0.018, brass);
+}
+
 function addTable(mesh, tableSkin) {
   const surface = parseHex(tableSkin.surface);
   const edge = parseHex(tableSkin.edge);
@@ -462,6 +523,7 @@ function addTable(mesh, tableSkin) {
   addRing(mesh, [0, 0.01, 0], [3.5, 2.0], [3.44, 1.94], 0.01, tint(accent, -0.25), 32, 0);
   addRing(mesh, [0, 0.01, 0], [1.2, 0.66], [1.16, 0.62], 0.015, tint(accent, -0.18), 24, 0);
   addTableOrnament(mesh, tableSkin);
+  addDeskProps(mesh, tableSkin);
 }
 
 function addTrayOrnament(mesh, traySkin) {
@@ -510,14 +572,23 @@ function addTray(mesh, traySkin) {
   const wall = parseHex(traySkin.wall);
   const rim = parseHex(traySkin.rim);
   const accent = parseHex(traySkin.accent);
-  addPrism(mesh, [0, 0.08, 0.16], [3.78, 2.40], 0.26, 8, wall, Math.PI / 8);
-  addOctagonFloor(mesh, [0, 0, 0.16], [3.28, 1.90], 0.23, floor);
-  addRing(mesh, [0, 0, 0.16], [3.84, 2.46], [3.28, 1.90], 0.30, rim);
-  addRing(mesh, [0, 0, 0.16], [3.30, 1.92], [3.20, 1.82], 0.315, tint(rim, -0.12), 8, Math.PI / 8);
-  addRing(mesh, [0, 0, 0.16], [2.3, 1.28], [2.22, 1.20], 0.25, tint(accent, -0.12), 24, 0);
+  const center = [0, 0, 0.16];
+  // The tray is a real raised container: an outer base, a hollow inner wall,
+  // a soft floor and two separate wooden/metal lips. This keeps it visually
+  // distinct from the desk underneath.
+  addPrism(mesh, [0, 0.09, 0.16], [3.88, 2.48], 0.28, 8, tint(wall, -0.18), Math.PI / 8);
+  addOctagonFloor(mesh, center, [3.24, 1.86], 0.245, floor);
+  addWallRing(mesh, center, [3.88, 2.48], [3.22, 1.84], 0.22, 0.72, wall, tint(wall, -0.22), rim, 8, Math.PI / 8);
+  addRing(mesh, center, [3.98, 2.56], [3.78, 2.36], 0.73, rim, 8, Math.PI / 8);
+  addRing(mesh, center, [3.31, 1.93], [3.18, 1.80], 0.735, tint(rim, -0.16), 8, Math.PI / 8);
+  addRing(mesh, center, [2.46, 1.36], [2.39, 1.29], 0.255, tint(accent, -0.12), 32, 0);
   [[-3.05, -1.58], [3.05, -1.58], [-3.05, 1.58], [3.05, 1.58]].forEach(([x, z]) => {
     addTopDot(mesh, [x, z + 0.16], 0.35, 0.07, accent);
   });
+  [
+    [-2.12, -1.10], [-1.42, -1.52], [-0.54, -1.66], [0.54, -1.66], [1.42, -1.52], [2.12, -1.10],
+    [-2.30, 0.64], [2.30, 0.64], [-1.86, 1.18], [1.86, 1.18],
+  ].forEach(([x, z], index) => addTopDot(mesh, [x, z + 0.16], 0.285, index % 3 === 0 ? 0.045 : 0.026, tint(accent, -0.08)));
   addTrayOrnament(mesh, traySkin);
 }
 
@@ -577,10 +648,13 @@ function buildMesh(state, time) {
     const bounce = rolling ? Math.sin(progress * Math.PI) * 0.72 : 0;
     const spin = rolling ? (1 - progress) * (index % 2 ? -1 : 1) * 4.4 : (index % 2 ? -0.12 : 0.12);
     const { shape, size, squash } = dieShape(die.id);
+    const floorY = state.mode === 'tray' ? 0.30 : state.mode === 'tower' ? 0.92 : 0.08;
+    const rowOffset = position[1] - 0.53;
+    const restY = floorY + dieRestHeight(shape, size, squash) + rowOffset;
     addPolyhedron(
       mesh,
       shape,
-      [position[0], position[1] + bounce, position[2] + (state.mode === 'tower' ? 1.18 : state.mode === 'tray' ? 0.16 : 0)],
+      [position[0], restY + bounce, position[2] + (state.mode === 'tower' ? 1.18 : state.mode === 'tray' ? 0.16 : 0)],
       size,
       dieMaterial,
       dieAccent,
@@ -668,7 +742,7 @@ export function createWebglScene(canvas, options = {}) {
   const viewLocation = gl.getUniformLocation(program, 'u_view');
   const timeLocation = gl.getUniformLocation(program, 'u_time');
   let projection = perspective(Math.PI / 3.1, 1, 0.1, 50);
-  let view = lookAt([0, 8.0, 6.2], [0, 0.15, 0.16], [0, 1, 0]);
+  let view = lookAt([6.8, 8.6, 7.4], [0, 0.42, 0.05], [0, 1, 0]);
   let animationFrame = 0;
   let disposed = false;
   let renderState = {
@@ -682,14 +756,16 @@ export function createWebglScene(canvas, options = {}) {
 
   function updateCamera() {
     if (renderState.mode === 'tower') {
-      view = lookAt([0, 5.9, 10.4], [0, 1.85, 0], [0, 1, 0]);
+      view = lookAt([6.0, 6.5, 8.8], [0, 2.12, -0.15], [0, 1, 0]);
       return;
     }
     if (renderState.mode === 'table') {
-      view = lookAt([0, 8.8, 6.7], [0, 0.0, 0], [0, 1, 0]);
+      view = lookAt([7.8, 9.2, 8.4], [0, 0.25, -0.05], [0, 1, 0]);
       return;
     }
-    view = lookAt([0, 8.0, 6.2], [0, 0.15, 0.16], [0, 1, 0]);
+    // 3/4 isometric angle: the far rim, tray depth and the rear lamp remain
+    // visible while the dice still occupy the visual center of the desk.
+    view = lookAt([6.8, 8.6, 7.4], [0, 0.42, 0.05], [0, 1, 0]);
   }
 
   gl.bindVertexArray(vao);
