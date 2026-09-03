@@ -16,8 +16,7 @@ The only permitted external references for this repository are:
 2. xxiamadelxx-blip/out-of-abyys, only for its Visual Lab / visual QA principles and the explicitly requested QA-console ideas;
 3. xxiamadelxx-blip/android-cloud-test-stand, only for isolated native verification infrastructure and evidence contracts;
 4. xxiamadelxx-blip/-browser-ai-android, only for Ø Browser/WebView compatibility and safe browser control;
-5. the user-provided visual references attached to the task;
-6. user-approved skin/asset repositories only when they are asset references and are not dice-roller projects.
+5. the user-provided visual references attached to the task. All runtime visual materials are authored in this repository from scratch;
 
 External repositories are reference material, not product source. Do not copy their code, file layout, state, roadmap, generated artifacts, tests, runtime assumptions, credentials or deployment configuration.
 
