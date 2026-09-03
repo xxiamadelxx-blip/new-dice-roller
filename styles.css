@@ -491,16 +491,16 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
   transform: rotate(31deg);
 }
 
-.die-token-obsidian .die-shell { --die-body: #171b1b; }
-.die-token-moonstone .die-shell { --die-body: #65738e; }
-.die-token-verdant .die-shell { --die-body: #1f4a3d; }
-.die-token-bloodglass .die-shell { --die-body: #6d202b; }
-.die-token-opal .die-shell { --die-body: #c9d2d2; }
-.die-token-bloodstone .die-shell { --die-body: #3c282c; }
-.die-token-fluorite .die-shell { --die-body: #302247; }
-.die-token-sandstone .die-shell { --die-body: #163653; }
-.die-token-quartz .die-shell { --die-body: #6e424d; }
-.die-token-prism .die-shell { --die-body: #3d6170; }
+.die-skin-obsidian .die-shell { --die-body: #171b1b; }
+.die-skin-moonstone .die-shell { --die-body: #65738e; }
+.die-skin-verdant .die-shell { --die-body: #1f4a3d; }
+.die-skin-bloodglass .die-shell { --die-body: #6d202b; }
+.die-skin-opal .die-shell { --die-body: #c9d2d2; }
+.die-skin-bloodstone .die-shell { --die-body: #3c282c; }
+.die-skin-fluorite .die-shell { --die-body: #302247; }
+.die-skin-sandstone .die-shell { --die-body: #163653; }
+.die-skin-quartz .die-shell { --die-body: #6e424d; }
+.die-skin-prism .die-shell { --die-body: #3d6170; }
 
 .die-token-tetra { width: clamp(65px, 17vw, 92px); }
 .die-token-cube .die-shell { border-radius: 16%; transform: rotate(-5deg) skewY(-2deg); }
