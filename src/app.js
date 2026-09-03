@@ -1,6 +1,7 @@
 import { DIE_TYPES, clampInteger, formatExpression } from "./dice.js";
 import { resolveRoll } from "./roll.js";
 import { DiceRenderer, DICE_SKINS, TRAY_SKINS, TOWER_SKINS, ENVIRONMENTS } from "./renderer.js";
+import { secureInt } from "./rng.js";
 
 const state = {
   sides: 20,
@@ -151,7 +152,8 @@ function chooseMaterial(kind, key) {
 }
 
 function addHistory(result) {
-  state.history.unshift({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, expression: result.expression, breakdown: result.breakdown, total: result.total });
+  const id = `${Date.now()}-${secureInt(0x100000000).toString(16)}`;
+  state.history.unshift({ id, expression: result.expression, breakdown: result.breakdown, total: result.total });
   state.history = state.history.slice(0, 12);
   saveHistory();
   renderHistory();
