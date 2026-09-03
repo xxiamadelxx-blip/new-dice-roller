@@ -8,7 +8,9 @@
     "renderer": "webgl2-canvas-v1",
     "external_assets": false,
     "fallback": false,
-    "source_boundary": "greenfield"
+    "source_boundary": "greenfield",
+    "scene_objects": "procedural-webgl2-geometry",
+    "atmosphere": "authored-css-behind-transparent-canvas"
   },
   "provenance": {
     "source_type": "user-provided-moodboard",
