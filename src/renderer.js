@@ -1,5 +1,6 @@
 import { faceNumbers } from "./dice.js";
 import { announceWebGlBoot, announceWebGlError, announceWebGlReady, announceWebGlRolling } from "./qa.js";
+import { secureInt } from "./rng.js";
 
 const TAU = Math.PI * 2;
 const UP = [0, 1, 0];
@@ -450,8 +451,9 @@ function createProgram(gl) {
 }
 
 function randomQuaternion() {
-  const axis = normalize([Math.sin(Math.random() * TAU), Math.cos(Math.random() * TAU), Math.sin(Math.random() * TAU)]);
-  return quatFromAxisAngle(axis, Math.random() * TAU);
+  const unit = () => secureInt(0x1000000) / 0x1000000;
+  const axis = normalize([Math.sin(unit() * TAU), Math.cos(unit() * TAU), Math.sin(unit() * TAU)]);
+  return quatFromAxisAngle(axis, unit() * TAU);
 }
 
 function scaleForSides(sides) {
