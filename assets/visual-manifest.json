@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "project": "new-dice-roller",
+  "candidate_status": "candidate",
+  "artistic_approval": "pending_user",
+  "runtime": {
+    "renderer": "css3d-dom-v1",
+    "external_assets": false,
+    "fallback": false,
+    "source_boundary": "greenfield"
+  },
+  "scene_layers": {
+    "dice": ["obsidian-ember", "moonstone-veil", "verdant-rite", "bloodglass", "opal-veil"],
+    "tray": ["dusk-oak", "star-covenant", "moss-and-brass", "crimson-forge"],
+    "tower": ["brass-arc", "moon-spire", "verdant-keep"],
+    "table": ["obsidian-desk", "lunar-slate", "deepwood-map", "ember-vault"]
+  },
+  "technical_checks": [
+    "d4-d100-catalog",
+    "secure-rng",
+    "result-committed-before-animation",
+    "local-history",
+    "qa-fixture",
+    "semantic-controls"
+  ],
+  "approval_note": "Technical QA is separate from artistic approval."
+}
