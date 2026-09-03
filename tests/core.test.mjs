@@ -14,6 +14,18 @@ test('catalog contains the complete D&D range from d4 to d100', () => {
   assert.deepEqual(DIE_TYPES.map((die) => die.id), ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100']);
 });
 
+test('every catalog die produces values inside its own face range', () => {
+  for (const die of DIE_TYPES) {
+    const event = createRoll({ die: die.id, count: 2 }, {
+      randomInt: (maxExclusive) => maxExclusive - 1,
+      now: 10,
+      idFactory: () => `range-${die.id}`,
+    });
+    assert.deepEqual(event.outcomes, [die.sides, die.sides]);
+    assert.ok(event.outcomes.every((value) => value >= 1 && value <= die.sides));
+  }
+});
+
 test('roll request normalizes die aliases, count, modifier and mode', () => {
   assert.deepEqual(normalizeRollRequest({ sides: 20, count: 99, modifier: -500, mode: 'TOWER' }), {
     die: 'd20',
