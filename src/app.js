@@ -1,6 +1,9 @@
 import { DIE_TYPES, clampInteger, formatExpression } from "./dice.js";
 import { resolveRoll } from "./roll.js";
 import { DiceRenderer, DICE_SKINS, TRAY_SKINS, TOWER_SKINS, ENVIRONMENTS } from "./renderer.js";
+import { secureInt } from "./rng.js";
+
+const DEFAULT_APPEARANCE = Object.freeze({ diceSkin: "obsidian", traySkin: "leather", towerSkin: "runes", environment: "cartographer" });
 
 const state = {
   sides: 20,
@@ -9,7 +12,7 @@ const state = {
   perDieModifier: false,
   mode: "normal",
   category: "dice",
-  appearance: { diceSkin: "obsidian", traySkin: "leather", towerSkin: "runes", environment: "cartographer" },
+  appearance: loadAppearance(),
   history: loadHistory(),
   lastResult: null,
   busy: false
@@ -21,6 +24,7 @@ const elements = {
   frameState: document.querySelector("#frame-state"),
   footerFrame: document.querySelector("#footer-frame"),
   sceneCaption: document.querySelector("#scene-caption"),
+  captureBadge: document.querySelector("#capture-badge"),
   sceneFailure: document.querySelector("#scene-failure"),
   count: document.querySelector("#count-value"),
   modifier: document.querySelector("#modifier-value"),
@@ -50,6 +54,24 @@ function loadHistory() {
 
 function saveHistory() {
   try { localStorage.setItem("o-dice-history", JSON.stringify(state.history.slice(0, 12))); } catch { /* private mode */ }
+}
+
+function loadAppearance() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("o-dice-appearance") || "{}");
+    return {
+      diceSkin: DICE_SKINS[saved.diceSkin] ? saved.diceSkin : DEFAULT_APPEARANCE.diceSkin,
+      traySkin: TRAY_SKINS[saved.traySkin] ? saved.traySkin : DEFAULT_APPEARANCE.traySkin,
+      towerSkin: TOWER_SKINS[saved.towerSkin] ? saved.towerSkin : DEFAULT_APPEARANCE.towerSkin,
+      environment: ENVIRONMENTS[saved.environment] ? saved.environment : DEFAULT_APPEARANCE.environment
+    };
+  } catch {
+    return { ...DEFAULT_APPEARANCE };
+  }
+}
+
+function saveAppearance() {
+  try { localStorage.setItem("o-dice-appearance", JSON.stringify(state.appearance)); } catch { /* private mode */ }
 }
 
 function formatSigned(value) {
@@ -145,13 +167,15 @@ function chooseMaterial(kind, key) {
     state.appearance.environment = key;
     document.body.dataset.environment = key;
   }
+  saveAppearance();
   renderer?.setAppearance(state.appearance);
   renderShowcase();
   renderQuickSkins();
 }
 
 function addHistory(result) {
-  state.history.unshift({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, expression: result.expression, breakdown: result.breakdown, total: result.total });
+  const id = `${Date.now()}-${secureInt(0x100000000).toString(16)}`;
+  state.history.unshift({ id, expression: result.expression, breakdown: result.breakdown, total: result.total });
   state.history = state.history.slice(0, 12);
   saveHistory();
   renderHistory();
@@ -219,6 +243,7 @@ function bindEvents() {
 }
 
 function boot() {
+  document.body.dataset.environment = state.appearance.environment;
   renderComposer();
   renderResult(null);
   renderHistory();
@@ -227,12 +252,18 @@ function boot() {
   bindEvents();
   try {
     renderer = new DiceRenderer(elements.canvas, { onSettled: finishRoll });
+    document.body.dataset.renderer = "ready";
     elements.webglStatus.textContent = "WebGL: готов";
   } catch (error) {
     console.error(error);
+    document.body.dataset.renderer = "error";
     elements.webglStatus.textContent = "WebGL: недоступен";
     elements.sceneFailure.hidden = false;
     elements.rollButton.disabled = true;
+    elements.frameState.textContent = "ERROR";
+    elements.footerFrame.textContent = "—";
+    elements.sceneCaption.textContent = "Renderer недоступен";
+    elements.captureBadge.hidden = true;
   }
 }
 
