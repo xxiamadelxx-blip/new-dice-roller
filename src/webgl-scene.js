@@ -237,6 +237,56 @@ function addLeaf(mesh, center, lengthValue, width, angle, y, color) {
   addTopSegment(mesh, base, tip, y + 0.006, Math.max(0.012, width * 0.08), tint(color, -0.18));
 }
 
+function addTopPolygon(mesh, points, y, color) {
+  if (!Array.isArray(points) || points.length < 3) return;
+  const center = points.reduce((sum, point) => [sum[0] + point[0], sum[1] + point[1]], [0, 0]).map((value) => value / points.length);
+  const origin = [center[0], y, center[1]];
+  for (let index = 0; index < points.length; index += 1) {
+    const next = (index + 1) % points.length;
+    pushTriangle(mesh, [
+      origin,
+      [points[index][0], y, points[index][1]],
+      [points[next][0], y, points[next][1]],
+    ], [0, 1, 0], tint(color, (index % 3 - 1) * 0.035));
+  }
+}
+
+function addButterfly(mesh, center, y, color) {
+  const [cx, cz] = center;
+  const bright = tint(color, 0.16);
+  const shadow = tint(color, -0.22);
+  const translate = (points, mirror = false) => points.map(([x, z]) => [cx + (mirror ? -x : x), cz + z]);
+  const upper = [
+    [-0.06, 0.05], [-0.34, 0.62], [-0.96, 0.72], [-1.28, 0.38],
+    [-1.10, 0.02], [-0.46, -0.08],
+  ];
+  const lower = [
+    [-0.06, -0.02], [-0.46, -0.18], [-0.86, -0.58], [-0.62, -0.82],
+    [-0.24, -0.44],
+  ];
+  addTopPolygon(mesh, translate(upper), y, bright);
+  addTopPolygon(mesh, translate(upper, true), y, bright);
+  addTopPolygon(mesh, translate(lower), y + 0.002, shadow);
+  addTopPolygon(mesh, translate(lower, true), y + 0.002, shadow);
+
+  const stroke = tint(color, -0.04);
+  const line = (from, to, lineColor = stroke, width = 0.022) => addTopSegment(mesh, [cx + from[0], cz + from[1]], [cx + to[0], cz + to[1]], y + 0.009, width, lineColor);
+  [[-0.06, 0.05], [-0.34, 0.62], [-0.96, 0.72], [-1.28, 0.38], [-1.10, 0.02], [-0.46, -0.08], [-0.06, 0.05]].forEach((point, index, points) => line(point, points[(index + 1) % points.length]));
+  upper.forEach((point, index) => {
+    if (index < 2 || index > 3) line([-0.06, 0.05], point, shadow, 0.014);
+    const mirrored = [-point[0], point[1]];
+    if (index < 2 || index > 3) line([0.06, 0.05], mirrored, shadow, 0.014);
+  });
+  [[-0.06, -0.02], [-0.46, -0.18], [-0.86, -0.58], [-0.62, -0.82], [-0.24, -0.44]].forEach((point, index, points) => line(point, points[(index + 1) % points.length], shadow, 0.016));
+  lower.forEach((point, index, points) => line([-0.06, -0.02], point, shadow, index === points.length - 1 ? 0.014 : 0.012));
+  lower.forEach((point, index, points) => line([0.06, -0.02], [-point[0], point[1]], shadow, index === points.length - 1 ? 0.014 : 0.012));
+
+  addPrism(mesh, [cx, y + 0.018, cz - 0.06], [0.09, 0.47], 0.055, 10, stroke, 0);
+  addTopDot(mesh, [cx, cz + 0.26], y + 0.055, 0.075, bright);
+  addTopArc(mesh, [cx - 0.05, cz + 0.37], [0.34, 0.22], Math.PI * 1.08, Math.PI * 1.66, y + 0.012, 0.014, stroke, 10);
+  addTopArc(mesh, [cx + 0.05, cz + 0.37], [0.34, 0.22], -Math.PI * 0.66, -Math.PI * 0.08, y + 0.012, 0.014, stroke, 10);
+}
+
 function addTopDot(mesh, center, y, radius, color) {
   addPrism(mesh, [center[0], y, center[1]], [radius, radius], 0.025, 12, color, 0);
 }
@@ -447,17 +497,12 @@ function addTrayOrnament(mesh, traySkin) {
     return;
   }
 
-  // The wood and moss variants use a hand-drawn botanical/butterfly-like
-  // centerpiece, echoing the engraved tray reference with original geometry.
-  addTopSegment(mesh, [0, center[1] - 0.74], [0, center[1] + 0.78], y, 0.025, darkAccent);
-  addTopArc(mesh, center, [1.22, 0.55], 0.18, 1.38, y, 0.026, brightAccent, 18);
-  addTopArc(mesh, center, [1.22, 0.55], Math.PI - 1.38, Math.PI - 0.18, y, 0.026, brightAccent, 18);
-  addTopArc(mesh, center, [0.94, 0.40], Math.PI * 1.16, Math.PI * 1.78, y, 0.022, darkAccent, 14);
-  addTopArc(mesh, center, [0.94, 0.40], -Math.PI * 0.78, -Math.PI * 0.16, y, 0.022, darkAccent, 14);
-  addLeaf(mesh, [-0.50, center[1] + 0.28], 0.48, 0.17, -0.76, y, accent);
-  addLeaf(mesh, [0.50, center[1] + 0.28], 0.48, 0.17, Math.PI + 0.76, y, accent);
-  addLeaf(mesh, [-0.42, center[1] - 0.30], 0.40, 0.15, 0.70, y, darkAccent);
-  addLeaf(mesh, [0.42, center[1] - 0.30], 0.40, 0.15, Math.PI - 0.70, y, darkAccent);
+  // The default tray owns a recognizable central butterfly emblem. It is
+  // original procedural geometry, not a flattened background image.
+  if (traySkin.family === 'butterfly' || traySkin.family === 'wood' || traySkin.family === 'moss') {
+    addButterfly(mesh, center, y, brightAccent);
+    return;
+  }
 }
 
 function addTray(mesh, traySkin) {
@@ -465,13 +510,13 @@ function addTray(mesh, traySkin) {
   const wall = parseHex(traySkin.wall);
   const rim = parseHex(traySkin.rim);
   const accent = parseHex(traySkin.accent);
-  addPrism(mesh, [0, 0.08, 0.16], [3.72, 2.34], 0.24, 8, wall, Math.PI / 8);
+  addPrism(mesh, [0, 0.08, 0.16], [3.78, 2.40], 0.26, 8, wall, Math.PI / 8);
   addOctagonFloor(mesh, [0, 0, 0.16], [3.28, 1.90], 0.23, floor);
-  addRing(mesh, [0, 0, 0.16], [3.75, 2.37], [3.29, 1.91], 0.27, rim);
+  addRing(mesh, [0, 0, 0.16], [3.84, 2.46], [3.28, 1.90], 0.30, rim);
+  addRing(mesh, [0, 0, 0.16], [3.30, 1.92], [3.20, 1.82], 0.315, tint(rim, -0.12), 8, Math.PI / 8);
   addRing(mesh, [0, 0, 0.16], [2.3, 1.28], [2.22, 1.20], 0.25, tint(accent, -0.12), 24, 0);
-  addRing(mesh, [0, 0, 0.16], [3.22, 1.84], [3.13, 1.75], 0.30, tint(rim, -0.12), 8, Math.PI / 8);
-  [[-3.02, -1.56], [3.02, -1.56], [-3.02, 1.56], [3.02, 1.56]].forEach(([x, z]) => {
-    addTopDot(mesh, [x, z + 0.16], 0.325, 0.07, accent);
+  [[-3.05, -1.58], [3.05, -1.58], [-3.05, 1.58], [3.05, 1.58]].forEach(([x, z]) => {
+    addTopDot(mesh, [x, z + 0.16], 0.35, 0.07, accent);
   });
   addTrayOrnament(mesh, traySkin);
 }
@@ -535,7 +580,7 @@ function buildMesh(state, time) {
     addPolyhedron(
       mesh,
       shape,
-      [position[0], position[1] + bounce, position[2] + (state.mode === 'tower' ? 1.18 : 0)],
+      [position[0], position[1] + bounce, position[2] + (state.mode === 'tower' ? 1.18 : state.mode === 'tray' ? 0.16 : 0)],
       size,
       dieMaterial,
       dieAccent,
@@ -623,7 +668,7 @@ export function createWebglScene(canvas, options = {}) {
   const viewLocation = gl.getUniformLocation(program, 'u_view');
   const timeLocation = gl.getUniformLocation(program, 'u_time');
   let projection = perspective(Math.PI / 3.1, 1, 0.1, 50);
-  const view = lookAt([0, 5.3, 8.6], [0, 1.25, 0], [0, 1, 0]);
+  let view = lookAt([0, 8.0, 6.2], [0, 0.15, 0.16], [0, 1, 0]);
   let animationFrame = 0;
   let disposed = false;
   let renderState = {
@@ -634,6 +679,18 @@ export function createWebglScene(canvas, options = {}) {
     phase: 'idle',
     startedAt: 0,
   };
+
+  function updateCamera() {
+    if (renderState.mode === 'tower') {
+      view = lookAt([0, 5.9, 10.4], [0, 1.85, 0], [0, 1, 0]);
+      return;
+    }
+    if (renderState.mode === 'table') {
+      view = lookAt([0, 8.8, 6.7], [0, 0.0, 0], [0, 1, 0]);
+      return;
+    }
+    view = lookAt([0, 8.0, 6.2], [0, 0.15, 0.16], [0, 1, 0]);
+  }
 
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -661,7 +718,8 @@ export function createWebglScene(canvas, options = {}) {
       canvas.height = height;
     }
     gl.viewport(0, 0, width, height);
-    projection = perspective(Math.PI / 3.1, width / height, 0.1, 50);
+    updateCamera();
+    projection = perspective(renderState.mode === 'tower' ? Math.PI / 3.25 : Math.PI / 3.0, width / height, 0.1, 50);
   }
 
   function draw(time) {
