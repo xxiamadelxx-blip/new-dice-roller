@@ -27,7 +27,7 @@
 - Нормализация запроса броска, количество кубиков, сумма и детальные результаты.
 - Результат фиксируется до начала анимации.
 - История, повтор, копирование результата и восстановление локального состояния.
-- Unit/contract tests для границ и ошибок: `npm test` — 10/10 passed; `npm run check` — passed.
+- Unit/contract tests для границ и ошибок: `npm test` — 11/11 passed; `npm run check` — passed; WebGL renderer syntax checked.
 
 ## M2. Собственная визуальная сцена — Partial
 
@@ -38,7 +38,7 @@
 - Анимация броска представляет заранее выбранные значения.
 - Явный renderer gate: ready / failed, без ложного fallback-free статуса.
 
-Реализовано в authored CSS/DOM; реальный browser visual capture удержан до доступного HTTPS entry point.
+WebGL2 canvas renderer и authored polyhedron meshes реализованы; реальный browser visual capture удержан до доступного HTTPS entry point.
 
 ## M3. Skin Studio — Partial
 
