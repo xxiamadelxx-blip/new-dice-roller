@@ -14,7 +14,7 @@ export const SCENE_SKINS = Object.freeze({
     Object.freeze({ id: 'prismatic-glass', name: 'Prismatic Glass', description: 'Прозрачный сине-зелёный сплав с радужной гранью.', body: '#3d6170', accent: '#9de8df', highlight: '#ecffff', family: 'prism' }),
   ]),
   tray: Object.freeze([
-    Object.freeze({ id: 'dusk-oak', name: 'Dusk Oak', description: 'Тёмное дерево, мягкая кожа и латунная окантовка.', floor: '#171414', wall: '#39261d', rim: '#c7975b', accent: '#e6c986', family: 'wood' }),
+    Object.freeze({ id: 'dusk-oak', name: 'Butterfly Slate', description: 'Графитовый лоток с медной бабочкой и мягким тёмным дном.', floor: '#10161d', wall: '#2b3540', rim: '#73808a', accent: '#d3a06a', family: 'butterfly' }),
     Object.freeze({ id: 'star-covenant', name: 'Star Covenant', description: 'Сланцевое дно, созвездия и холодная бронза.', floor: '#101724', wall: '#202b40', rim: '#7c9bc1', accent: '#c7d9f6', family: 'star' }),
     Object.freeze({ id: 'moss-and-brass', name: 'Moss & Brass', description: 'Зелёный текстиль с медным сигилом.', floor: '#10201c', wall: '#1e3b31', rim: '#b68b51', accent: '#cbd899', family: 'moss' }),
     Object.freeze({ id: 'crimson-forge', name: 'Crimson Forge', description: 'Красная кожа и тёплые рёбра кованой меди.', floor: '#271315', wall: '#4d2021', rim: '#cc714d', accent: '#f5ad75', family: 'forge' }),
@@ -25,7 +25,7 @@ export const SCENE_SKINS = Object.freeze({
     Object.freeze({ id: 'verdant-keep', name: 'Verdant Keep', description: 'Зелёный камень и старое железо с мшистым свечением.', body: '#29423a', dark: '#0e1815', metal: '#91aa7b', accent: '#c7db9d', family: 'stone' }),
   ]),
   table: Object.freeze([
-    Object.freeze({ id: 'obsidian-desk', name: 'Obsidian Desk', description: 'Антрацитовая поверхность с тихой золотой инкрустацией.', surface: '#0d1413', edge: '#252e2a', accent: '#b99458', background: '#070b0a', family: 'obsidian' }),
+    Object.freeze({ id: 'obsidian-desk', name: 'Charcoal Desk', description: 'Графитовая поверхность, на которой лоток читается отдельным предметом.', surface: '#15191e', edge: '#2b3239', accent: '#b8835c', background: '#0c0f13', family: 'obsidian' }),
     Object.freeze({ id: 'lunar-slate', name: 'Lunar Slate', description: 'Холодный сланец, туманная синь и серебряный край.', surface: '#121b2a', edge: '#2d4058', accent: '#91b6e1', background: '#070c16', family: 'slate' }),
     Object.freeze({ id: 'deepwood-map', name: 'Deepwood Map', description: 'Тёмная зелень, медные линии и след старой карты.', surface: '#0d211a', edge: '#1b4233', accent: '#b9cb87', background: '#06100b', family: 'moss' }),
     Object.freeze({ id: 'ember-vault', name: 'Ember Vault', description: 'Графит, красное дерево и горячая медная кромка.', surface: '#211313', edge: '#4b2421', accent: '#e18a5f', background: '#110908', family: 'forge' }),
@@ -85,6 +85,11 @@ function makePreviewElement(documentLike, category, skin) {
   } else if (category === 'tray') {
     const tray = documentLike.createElement('span');
     tray.className = 'mini-tray';
+    if (skin.family === 'butterfly') {
+      const butterfly = documentLike.createElement('i');
+      butterfly.className = 'mini-butterfly';
+      tray.append(butterfly);
+    }
     preview.append(tray);
   } else if (category === 'tower') {
     const tower = documentLike.createElement('span');
@@ -160,6 +165,7 @@ function makeDieToken(documentLike, value, die, skin, index, phase) {
 export function renderDice(documentLike, root, event, appearance, phase = 'idle', rendererStatus = 'ready') {
   if (!root) return;
   root.replaceChildren();
+  root.classList?.toggle('has-result', Boolean(event));
   if (rendererStatus !== 'ready') {
     const blocked = documentLike.createElement('div');
     blocked.className = `dice-empty dice-empty-${rendererStatus}`;
