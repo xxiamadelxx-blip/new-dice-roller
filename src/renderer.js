@@ -548,7 +548,8 @@ export class DiceRenderer {
     this.environmentKey = "cartographer";
     announceWebGlBoot();
     try {
-      this.gl = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+      const contextOptions = { antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "high-performance" };
+      this.gl = canvas.getContext("webgl2", contextOptions) || canvas.getContext("webgl", contextOptions);
       if (!this.gl) throw new Error("WebGL context unavailable");
       this.program = createProgram(this.gl);
       this.locations = {
