@@ -14,6 +14,15 @@ test("supports the complete D&D die family from d4 to d100", () => {
   }
 });
 
+test("committed rolls stay inside every die's inclusive range", () => {
+  for (const sides of DIE_TYPES) {
+    const result = resolveRoll({ sides, count: 1 }, createInjectedRng([sides]));
+    assert.equal(result.values[0], sides);
+    assert.ok(result.values[0] >= 1 && result.values[0] <= sides);
+    assert.equal(result.total, sides);
+  }
+});
+
 test("normalizes composer values without changing the public contract", () => {
   assert.deepEqual(normalizeConfig({ sides: 20, count: 99, modifier: -200, perDieModifier: 1 }), {
     sides: 20, count: 8, modifier: -99, perDieModifier: true, mode: "normal"
