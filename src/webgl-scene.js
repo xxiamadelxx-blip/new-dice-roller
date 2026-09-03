@@ -354,12 +354,12 @@ function addPolyhedron(mesh, shape, center, size, color, accent, rotation, squas
     // A smaller raised facet gives mineral and glass finishes a deliberate cut
     // surface without importing a texture or a third-party model.
     const centroid = points.reduce((sum, point) => add(sum, point), [0, 0, 0]).map((value) => value / points.length);
-    const insetScale = family === 'opal' || family === 'bloodglass' ? 0.82 : 0.86;
+    const insetScale = ['opal', 'bloodglass', 'quartz', 'prism'].includes(family) ? 0.82 : 0.86;
     const inset = points.map((point) => add(
       centroid,
       add(scale(sub(point, centroid), insetScale), scale(normal, 0.008)),
     ));
-    const facetColor = mixColor(shaded, accent, family === 'obsidian' ? 0.13 : 0.19);
+    const facetColor = mixColor(shaded, accent, family === 'obsidian' ? 0.13 : family === 'fluorite' || family === 'prism' ? 0.24 : 0.19);
     for (let index = 1; index < inset.length - 1; index += 1) {
       pushTriangle(mesh, [inset[0], inset[index], inset[index + 1]], normal, facetColor);
     }
