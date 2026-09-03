@@ -40,6 +40,7 @@ export const DEFAULT_APPEARANCE = Object.freeze({
 });
 
 export const SKIN_CATEGORIES = Object.freeze(['dice', 'tray', 'tower', 'table']);
+const SKIN_CATEGORY_LABELS = Object.freeze({ dice: 'Кости', tray: 'Лоток', tower: 'Башня', table: 'Фон' });
 
 export function getSkin(category, id) {
   return SCENE_SKINS[category]?.find((skin) => skin.id === id) || null;
@@ -130,6 +131,70 @@ export function renderSkinCards(documentLike, root, category, appearance, onChoo
     card.append(copy);
     card.addEventListener('click', () => onChoose(category, skin.id));
     root.append(card);
+  }
+}
+
+export function renderSkinMenus(documentLike, root, appearance, onChoose) {
+  if (!root) return;
+  const normalized = normalizeAppearance(appearance);
+  root.replaceChildren();
+
+  for (const category of SKIN_CATEGORIES) {
+    const skins = SCENE_SKINS[category] || [];
+    const selectedId = normalized[category];
+    const selectedSkin = getSkin(category, selectedId) || skins[0];
+    const details = documentLike.createElement('details');
+    details.className = 'skin-menu';
+    details.dataset.skinCategory = category;
+
+    const summary = documentLike.createElement('summary');
+    summary.className = 'skin-menu-summary';
+    const summaryCopy = documentLike.createElement('span');
+    summaryCopy.className = 'skin-menu-summary-copy';
+    const categoryName = documentLike.createElement('strong');
+    categoryName.textContent = SKIN_CATEGORY_LABELS[category];
+    const categoryHint = documentLike.createElement('small');
+    categoryHint.textContent = category === 'table' ? 'TABLE / ENVIRONMENT' : `${category.toUpperCase()} SKIN`;
+    summaryCopy.append(categoryName, categoryHint);
+    const summaryValue = documentLike.createElement('span');
+    summaryValue.className = 'skin-menu-summary-value';
+    summaryValue.textContent = selectedSkin?.name || selectedId;
+    const chevron = documentLike.createElement('span');
+    chevron.className = 'drawer-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '⌄';
+    summary.append(summaryCopy, summaryValue, chevron);
+
+    const body = documentLike.createElement('div');
+    body.className = 'skin-menu-body';
+    const preview = selectedSkin ? makePreviewElement(documentLike, category, selectedSkin) : null;
+    if (preview) {
+      preview.classList.add('skin-menu-preview');
+      body.append(preview);
+    }
+    const field = documentLike.createElement('label');
+    field.className = 'skin-select-field';
+    const fieldLabel = documentLike.createElement('span');
+    fieldLabel.textContent = 'Выбрать оформление';
+    const select = documentLike.createElement('select');
+    select.className = 'skin-select';
+    select.dataset.skinCategory = category;
+    select.setAttribute('aria-label', `Выбор скина: ${SKIN_CATEGORY_LABELS[category]}`);
+    skins.forEach((skin) => {
+      const option = documentLike.createElement('option');
+      option.value = skin.id;
+      option.textContent = skin.name;
+      option.selected = skin.id === selectedId;
+      select.append(option);
+    });
+    select.addEventListener('change', () => onChoose?.(category, select.value));
+    field.append(fieldLabel, select);
+    const description = documentLike.createElement('p');
+    description.className = 'skin-menu-description';
+    description.textContent = selectedSkin?.description || '';
+    body.append(field, description);
+    details.append(summary, body);
+    root.append(details);
   }
 }
 
