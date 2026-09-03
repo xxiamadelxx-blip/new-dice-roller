@@ -1,484 +1,268 @@
-import {
-  createRoll,
-  createRollFromOutcomes,
-  formatRollSummary,
-  normalizeModifier,
-  normalizeRollRequest,
-  rollToHistoryEntry,
-} from './core.js';
-import {
-  DEFAULT_APPEARANCE,
-  SCENE_SKINS,
-  applyAppearanceToStage,
-  getSkin,
-  normalizeAppearance,
-  renderDice,
-  renderSkinCards,
-  SKIN_CATEGORIES,
-} from './scene.js';
+import { DIE_TYPES, clampInteger, formatExpression } from "./dice.js";
+import { resolveRoll } from "./roll.js";
+import { DiceRenderer, DICE_SKINS, TRAY_SKINS, TOWER_SKINS, ENVIRONMENTS } from "./renderer.js";
+import { secureInt } from "./rng.js";
 
-const STORAGE_KEY = 'new-dice-roller-state-v1';
-const QA_PROFILE = 'new-dice-roller-scene-v1';
-const HISTORY_LIMIT = 40;
-const MODE_LABELS = Object.freeze({ table: 'СТОЛ', tray: 'ЛОТОК', tower: 'БАШНЯ' });
-const CATEGORY_LABELS = Object.freeze({ dice: 'Кости', tray: 'Лоток', tower: 'Башня', table: 'Фон' });
+const DEFAULT_APPEARANCE = Object.freeze({ diceSkin: "obsidian", traySkin: "leather", towerSkin: "runes", environment: "cartographer" });
 
-const refs = {
-  stage: document.getElementById('scene-stage'),
-  diceCluster: document.getElementById('dice-cluster'),
-  rollButton: document.getElementById('roll-button'),
-  rollButtonFormula: document.getElementById('roll-button-formula'),
-  formulaReadout: document.getElementById('formula-readout'),
-  diceCount: document.getElementById('dice-count'),
-  modifier: document.getElementById('modifier'),
-  resultCard: document.getElementById('result-card'),
-  resultTotal: document.getElementById('result-total'),
-  resultFormula: document.getElementById('result-formula'),
-  copyResult: document.getElementById('copy-result'),
-  sceneModeReadout: document.getElementById('scene-mode-readout'),
-  scenePhase: document.getElementById('scene-phase'),
-  headerState: document.getElementById('header-state'),
-  historyList: document.getElementById('history-list'),
-  skinGrid: document.getElementById('skin-grid'),
-  skinTabs: document.getElementById('skin-tabs'),
-  clearHistory: document.getElementById('clear-history'),
-  qaPanel: document.getElementById('qa-panel'),
-  qaFixture: document.getElementById('qa-fixture'),
-  qaManifest: document.getElementById('qa-manifest'),
-  toast: document.getElementById('toast'),
+const state = {
+  sides: 20,
+  count: 1,
+  modifier: 0,
+  perDieModifier: false,
+  mode: "normal",
+  category: "dice",
+  appearance: loadAppearance(),
+  history: loadHistory(),
+  lastResult: null,
+  busy: false
 };
 
-const qaMode = new URLSearchParams(window.location.search).get('qa') === '1';
-let activeView = 'roll';
-let activeSkinCategory = 'dice';
-let toastTimer = 0;
-let rollTimer = 0;
-let state = loadState();
-const qaState = {
-  profile: QA_PROFILE,
-  renderer: 'css3d-dom-v1',
-  rendererStatus: 'pending',
-  fallback: false,
-  phase: state.lastRoll ? 'settled' : 'idle',
-  frame: 0,
-  captureId: 'candidate-boot',
-  lastRollId: state.lastRoll?.id || null,
-  errorCount: 0,
-  lastError: null,
-  fixture: false,
+const elements = {
+  canvas: document.querySelector("#dice-canvas"),
+  webglStatus: document.querySelector("#webgl-status"),
+  frameState: document.querySelector("#frame-state"),
+  footerFrame: document.querySelector("#footer-frame"),
+  sceneCaption: document.querySelector("#scene-caption"),
+  captureBadge: document.querySelector("#capture-badge"),
+  sceneFailure: document.querySelector("#scene-failure"),
+  count: document.querySelector("#count-value"),
+  modifier: document.querySelector("#modifier-value"),
+  perDieModifier: document.querySelector("#per-die-modifier"),
+  rollButton: document.querySelector("#roll-button"),
+  composerNote: document.querySelector("#composer-note"),
+  expression: document.querySelector("#result-expression"),
+  total: document.querySelector("#result-total"),
+  breakdown: document.querySelector("#result-breakdown"),
+  history: document.querySelector("#history-list"),
+  historyCount: document.querySelector("#history-count"),
+  showcase: document.querySelector("#showcase"),
+  showcaseGrid: document.querySelector("#showcase-grid"),
+  quickSkinList: document.querySelector("#quick-skin-list")
 };
 
-function initialState() {
-  return {
-    request: normalizeRollRequest({ die: 'd20', count: 1, modifier: 0, mode: 'tray' }),
-    appearance: DEFAULT_APPEARANCE,
-    history: [],
-    lastRoll: null,
-    phase: 'idle',
-  };
-}
+let renderer;
 
-function safeStorage() {
+function loadHistory() {
   try {
-    const probe = '__ndr_storage_probe__';
-    window.localStorage.setItem(probe, '1');
-    window.localStorage.removeItem(probe);
-    return window.localStorage;
-  } catch (_) {
-    return null;
+    const saved = JSON.parse(localStorage.getItem("o-dice-history") || "[]");
+    return Array.isArray(saved) ? saved.slice(0, 12) : [];
+  } catch {
+    return [];
   }
 }
 
-function normalizePersistedRoll(raw) {
-  if (!raw || !Array.isArray(raw.outcomes)) return null;
-  try {
-    const request = normalizeRollRequest({
-      die: raw.die,
-      count: raw.count || raw.outcomes.length,
-      modifier: raw.modifier,
-      mode: raw.mode,
-    });
-    if (request.count !== raw.outcomes.length) return null;
-    return createRollFromOutcomes(request, raw.outcomes, {
-      now: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : Date.now(),
-      idFactory: () => String(raw.id || `roll-restored-${Date.now()}`),
-    });
-  } catch (_) {
-    return null;
-  }
+function saveHistory() {
+  try { localStorage.setItem("o-dice-history", JSON.stringify(state.history.slice(0, 12))); } catch { /* private mode */ }
 }
 
-function loadState() {
-  const fallback = initialState();
-  const storage = safeStorage();
-  if (!storage) return fallback;
+function loadAppearance() {
   try {
-    const raw = JSON.parse(storage.getItem(STORAGE_KEY) || 'null');
-    if (!raw || typeof raw !== 'object') return fallback;
-    const restoredHistory = Array.isArray(raw.history)
-      ? raw.history.map(normalizePersistedRoll).filter(Boolean).map(rollToHistoryEntry).slice(0, HISTORY_LIMIT)
-      : [];
-    const lastRollEvent = normalizePersistedRoll(raw.lastRoll);
+    const saved = JSON.parse(localStorage.getItem("o-dice-appearance") || "{}");
     return {
-      request: normalizeRollRequest(raw.request),
-      appearance: normalizeAppearance(raw.appearance),
-      history: restoredHistory,
-      lastRoll: lastRollEvent ? rollToHistoryEntry(lastRollEvent) : null,
-      phase: lastRollEvent ? 'settled' : 'idle',
+      diceSkin: DICE_SKINS[saved.diceSkin] ? saved.diceSkin : DEFAULT_APPEARANCE.diceSkin,
+      traySkin: TRAY_SKINS[saved.traySkin] ? saved.traySkin : DEFAULT_APPEARANCE.traySkin,
+      towerSkin: TOWER_SKINS[saved.towerSkin] ? saved.towerSkin : DEFAULT_APPEARANCE.towerSkin,
+      environment: ENVIRONMENTS[saved.environment] ? saved.environment : DEFAULT_APPEARANCE.environment
     };
-  } catch (_) {
-    return fallback;
+  } catch {
+    return { ...DEFAULT_APPEARANCE };
   }
 }
 
-function persist() {
-  const storage = safeStorage();
-  if (!storage) return;
-  try { storage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { showToast('Сохранение недоступно'); }
+function saveAppearance() {
+  try { localStorage.setItem("o-dice-appearance", JSON.stringify(state.appearance)); } catch { /* private mode */ }
 }
 
-function setQa(patch = {}) {
-  Object.assign(qaState, patch);
-  renderQa();
+function formatSigned(value) {
+  if (value === 0) return "0";
+  return value > 0 ? `+${value}` : `−${Math.abs(value)}`;
 }
 
-function qaSnapshot() {
-  return {
-    profile: qaState.profile,
-    renderer: qaState.renderer,
-    renderer_status: qaState.rendererStatus,
-    fallback: qaState.fallback,
-    phase: qaState.phase,
-    frame_id: qaState.frame,
-    capture_id: qaState.captureId,
-    last_roll_id: qaState.lastRollId,
-    error_count: qaState.errorCount,
-    last_error: qaState.lastError,
-    fixture: qaState.fixture,
-    viewport: `${window.innerWidth}x${window.innerHeight}`,
-    dpr: window.devicePixelRatio || 1,
-    mode: state.request.mode,
-    appearance: { ...state.appearance },
-    timestamp: new Date().toISOString(),
-  };
+function setActiveDie() {
+  document.querySelectorAll("[data-sides]").forEach(button => button.classList.toggle("is-active", Number(button.dataset.sides) === state.sides));
 }
 
-function visualManifest() {
-  return {
-    schema_version: 1,
-    project: 'new-dice-roller',
-    candidate_status: 'candidate',
-    artistic_approval: 'pending_user',
-    scene: qaSnapshot(),
-    last_result: state.lastRoll ? {
-      id: state.lastRoll.id,
-      die: state.lastRoll.die,
-      outcomes: state.lastRoll.outcomes,
-      final_total: state.lastRoll.finalTotal,
-      formula: state.lastRoll.formula,
-    } : null,
-  };
+function renderComposer() {
+  elements.count.value = String(state.count);
+  elements.modifier.value = formatSigned(state.modifier);
+  elements.perDieModifier.checked = state.perDieModifier;
+  setActiveDie();
+  document.querySelectorAll("[data-mode]").forEach(button => button.classList.toggle("is-active", button.dataset.mode === state.mode));
+  elements.composerNote.textContent = state.mode === "normal" ? "Результат выбирается один раз до начала анимации." : "Преимущество и помеха работают как в D&D для одиночного к20.";
 }
 
-function renderQa() {
-  if (!refs.qaPanel) return;
-  const snapshot = qaSnapshot();
-  const fields = {
-    'qa-profile': snapshot.profile,
-    'qa-renderer': `${snapshot.renderer} · ${snapshot.renderer_status}`,
-    'qa-fallback': String(snapshot.fallback),
-    'qa-phase': snapshot.phase,
-    'qa-frame': `${snapshot.frame_id} · ${snapshot.capture_id}`,
-    'qa-viewport': `${snapshot.viewport} · dpr ${snapshot.dpr}`,
-    'qa-mode': snapshot.mode,
-    'qa-roll': snapshot.last_roll_id || '—',
-  };
-  Object.entries(fields).forEach(([id, value]) => {
-    const node = document.getElementById(id);
-    if (node) node.textContent = String(value);
-  });
-  refs.qaPanel.hidden = !qaMode;
-}
-
-function installQaBridge() {
-  window.__NDR_QA__ = Object.freeze({
-    getState: () => qaSnapshot(),
-    getManifest: () => visualManifest(),
-    loadFixture: () => qaMode && loadFixture(),
-  });
-}
-
-function showToast(message) {
-  if (!refs.toast) return;
-  window.clearTimeout(toastTimer);
-  refs.toast.textContent = message;
-  refs.toast.classList.add('is-visible');
-  toastTimer = window.setTimeout(() => refs.toast.classList.remove('is-visible'), 2200);
-}
-
-function showError(error) {
-  const message = error?.message === 'secure-rng-unavailable'
-    ? 'Безопасный RNG недоступен — бросок заблокирован'
-    : 'Не удалось выполнить бросок';
-  state.phase = 'error';
-  setQa({ phase: 'error', lastError: error?.message || String(error), errorCount: qaState.errorCount + 1 });
-  refs.scenePhase.textContent = 'ОШИБКА БРОСКА';
-  showToast(message);
-}
-
-function updateRequest(patch) {
-  state.request = normalizeRollRequest({ ...state.request, ...patch });
-  persist();
-  renderControls();
-  renderScene();
-}
-
-function renderControls() {
-  document.querySelectorAll('[data-die]').forEach((button) => {
-    const selected = button.dataset.die === state.request.die;
-    button.classList.toggle('is-selected', selected);
-    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-  });
-  document.querySelectorAll('.mode-choice[data-mode]').forEach((button) => {
-    const selected = button.dataset.mode === state.request.mode;
-    button.classList.toggle('is-selected', selected);
-    if (button.classList.contains('mode-choice')) button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-  });
-  refs.diceCount.value = String(state.request.count);
-  refs.modifier.value = String(state.request.modifier);
-  refs.formulaReadout.textContent = formatFormula(state.request);
-  refs.rollButtonFormula.textContent = formatFormula(state.request);
-}
-
-function formatFormula(request) {
-  const modifier = request.modifier === 0 ? '' : request.modifier > 0 ? ` + ${request.modifier}` : ` - ${Math.abs(request.modifier)}`;
-  return `${request.count}${request.die}${modifier}`;
-}
-
-function renderScene() {
-  if (!refs.stage) return;
-  applyAppearanceToStage(refs.stage, state.appearance, state.request.mode);
-  renderDice(document, refs.diceCluster, state.lastRoll, state.appearance, state.phase);
-  refs.sceneModeReadout.textContent = MODE_LABELS[state.request.mode];
-  refs.scenePhase.textContent = state.phase === 'rolling'
-    ? 'БРОСОК В ДВИЖЕНИИ'
-    : state.phase === 'error'
-      ? 'ОШИБКА БРОСКА'
-      : state.lastRoll
-        ? 'РЕЗУЛЬТАТ ЗАФИКСИРОВАН'
-        : 'ГОТОВ К БРОСКУ';
-  refs.resultTotal.textContent = state.lastRoll ? String(state.lastRoll.finalTotal) : '—';
-  refs.resultFormula.textContent = state.lastRoll ? formatRollSummary(state.lastRoll) : 'Бросок ещё не сделан';
-  refs.resultCard.dataset.phase = state.phase;
-  refs.rollButton.disabled = state.phase === 'rolling';
-  refs.rollButton.setAttribute('aria-busy', state.phase === 'rolling' ? 'true' : 'false');
-  qaState.frame += 1;
-  qaState.captureId = `candidate-${String(qaState.frame).padStart(4, '0')}`;
-  setQa({ phase: state.phase, lastRollId: state.lastRoll?.id || null });
+function renderResult(result) {
+  if (!result) {
+    elements.expression.textContent = formatExpression(state);
+    elements.total.textContent = "—";
+    elements.breakdown.textContent = "Нажмите «Бросок», чтобы начать";
+    return;
+  }
+  elements.expression.textContent = result.expression;
+  elements.total.textContent = String(result.total);
+  const modeText = result.modeApplied ? ` · ${result.mode === "advantage" ? "преимущество" : "помеха"}: ${result.compared.join(" / ")}` : "";
+  elements.breakdown.textContent = `${result.breakdown}${modeText}`;
 }
 
 function renderHistory() {
-  if (!refs.historyList) return;
-  refs.historyList.replaceChildren();
+  elements.historyCount.textContent = String(state.history.length);
   if (!state.history.length) {
-    const empty = document.createElement('div');
-    empty.className = 'history-empty';
-    empty.innerHTML = '<span>≡</span><strong>История пока пуста</strong><small>Первый результат появится после броска</small>';
-    refs.historyList.append(empty);
+    elements.history.innerHTML = '<div class="empty-history">Здесь появятся последние броски.</div>';
     return;
   }
-  state.history.forEach((entry) => {
-    const article = document.createElement('article');
-    article.className = 'history-entry';
-    article.dataset.rollId = entry.id;
-    const copy = document.createElement('div');
-    copy.className = 'history-copy';
-    const title = document.createElement('strong');
-    title.textContent = String(entry.finalTotal);
-    const detail = document.createElement('small');
-    detail.textContent = `${entry.formula} · [${entry.outcomes.join(', ')}]`;
-    copy.append(title, detail);
-    const meta = document.createElement('div');
-    meta.className = 'history-meta';
-    const time = document.createElement('time');
-    time.dateTime = new Date(entry.createdAt).toISOString();
-    time.textContent = formatTime(entry.createdAt);
-    const repeat = document.createElement('button');
-    repeat.type = 'button';
-    repeat.textContent = 'Повторить';
-    repeat.addEventListener('click', () => {
-      updateRequest({ die: entry.die, count: entry.count, modifier: entry.modifier, mode: entry.mode });
-      setView('roll');
-      showToast(`${entry.formula} готов к повтору`);
-    });
-    meta.append(time, repeat);
-    article.append(copy, meta);
-    refs.historyList.append(article);
-  });
+  elements.history.innerHTML = state.history.map(item => `
+    <button type="button" class="history-item" data-history-id="${item.id}">
+      <span><small>${item.expression}</small><b>${item.breakdown}</b></span>
+      <strong>${item.total}</strong>
+    </button>
+  `).join("");
 }
 
-function formatTime(timestamp) {
-  try { return new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(timestamp)); } catch (_) { return '—'; }
+function materialEntries(category) {
+  if (category === "dice") return Object.entries(DICE_SKINS).map(([key, value]) => ({ key, ...value, kind: "dice" }));
+  if (category === "tray") return Object.entries(TRAY_SKINS).map(([key, value]) => ({ key, ...value, kind: "tray" }));
+  if (category === "tower") return Object.entries(TOWER_SKINS).map(([key, value]) => ({ key, ...value, kind: "tower" }));
+  return Object.entries(ENVIRONMENTS).map(([key, value]) => ({ key, ...value, kind: "environment" }));
 }
 
-function renderSkinStudio() {
-  renderSkinCards(document, refs.skinGrid, activeSkinCategory, state.appearance, (category, id) => {
-    state.appearance = normalizeAppearance({ ...state.appearance, [category]: id });
-    persist();
-    renderSkinStudio();
-    renderScene();
-    const skin = getSkin(category, id);
-    showToast(`${CATEGORY_LABELS[category]} · ${skin?.name || id}`);
-  });
-  refs.skinTabs.querySelectorAll('[data-skin-category]').forEach((button) => {
-    const selected = button.dataset.skinCategory === activeSkinCategory;
-    button.classList.toggle('is-selected', selected);
-    button.setAttribute('aria-selected', selected ? 'true' : 'false');
-  });
+function isSelected(entry) {
+  const key = entry.kind === "dice" ? state.appearance.diceSkin : entry.kind === "tray" ? state.appearance.traySkin : entry.kind === "tower" ? state.appearance.towerSkin : state.appearance.environment;
+  return key === entry.key;
 }
 
-function setView(view) {
-  activeView = ['roll', 'skins', 'history'].includes(view) ? view : 'roll';
-  document.querySelectorAll('[data-view-panel]').forEach((panel) => {
-    const selected = panel.dataset.viewPanel === activeView;
-    panel.hidden = !selected;
-    panel.classList.toggle('is-active', selected);
-  });
-  document.querySelectorAll('[data-view]').forEach((button) => {
-    button.classList.toggle('is-selected', button.dataset.view === activeView);
-  });
-  if (activeView === 'skins') renderSkinStudio();
-  if (activeView === 'history') renderHistory();
+function materialStyle(entry) {
+  if (entry.kind === "dice") return `--swatch-a:${entry.accent};--swatch-b:${entry.glow};--swatch-c:rgb(${entry.body.map(value => Math.round(value * 255)).join(",")})`;
+  if (entry.kind === "tray") return `--swatch-a:rgb(${entry.trim.map(value => Math.round(value * 255)).join(",")});--swatch-b:rgb(${entry.rim.map(value => Math.round(value * 255)).join(",")});--swatch-c:rgb(${entry.floor.map(value => Math.round(value * 255)).join(",")})`;
+  if (entry.kind === "tower") return `--swatch-a:rgb(${entry.trim.map(value => Math.round(value * 255)).join(",")});--swatch-b:rgb(${entry.body.map(value => Math.round(value * 255)).join(",")});--swatch-c:rgb(${entry.dark.map(value => Math.round(value * 255)).join(",")})`;
+  return `--swatch-a:${entry.body === "candlelit" ? "#c67c32" : entry.body === "mountain" ? "#b7c8b1" : "#43aac8"};--swatch-b:#101d27;--swatch-c:#d0ad70`;
 }
 
-function performRoll() {
-  if (state.phase === 'rolling') return;
-  let event;
-  try {
-    event = createRoll(state.request);
-  } catch (error) {
-    showError(error);
-    return;
+function renderShowcase() {
+  const entries = materialEntries(state.category);
+  elements.showcaseGrid.innerHTML = entries.map(entry => `
+    <button type="button" class="material-card ${isSelected(entry) ? "is-selected" : ""}" data-material-kind="${entry.kind}" data-material-key="${entry.key}" style="${materialStyle(entry)}">
+      <span class="material-preview material-preview-${entry.kind}"><i></i><b>${entry.kind === "dice" ? "к20" : entry.kind === "tray" ? "✦" : entry.kind === "tower" ? "⌂" : "◈"}</b></span>
+      <span class="material-copy"><strong>${entry.short}</strong><small>${entry.label}</small></span>
+      <span class="material-check">${isSelected(entry) ? "✓" : ""}</span>
+    </button>
+  `).join("");
+  document.querySelectorAll(".showcase-tab").forEach(tab => tab.classList.toggle("is-active", tab.dataset.category === state.category));
+}
+
+function renderQuickSkins() {
+  const entries = Object.entries(DICE_SKINS).slice(0, 4);
+  elements.quickSkinList.innerHTML = entries.map(([key, skin]) => `
+    <button type="button" class="quick-skin ${state.appearance.diceSkin === key ? "is-selected" : ""}" data-quick-skin="${key}" style="--swatch-a:${skin.accent};--swatch-b:${skin.glow};--swatch-c:rgb(${skin.body.map(value => Math.round(value * 255)).join(",")})">
+      <span class="quick-skin-orb"></span><span>${skin.short}</span>
+    </button>
+  `).join("");
+}
+
+function chooseMaterial(kind, key) {
+  if (kind === "dice") state.appearance.diceSkin = key;
+  if (kind === "tray") state.appearance.traySkin = key;
+  if (kind === "tower") state.appearance.towerSkin = key;
+  if (kind === "environment") {
+    state.appearance.environment = key;
+    document.body.dataset.environment = key;
   }
-  window.clearTimeout(rollTimer);
-  state.lastRoll = rollToHistoryEntry(event);
-  state.history = [state.lastRoll, ...state.history.filter((entry) => entry.id !== state.lastRoll.id)].slice(0, HISTORY_LIMIT);
-  state.phase = 'rolling';
-  qaState.fixture = false;
-  persist();
-  renderScene();
-  setQa({ phase: 'rolling', lastRollId: event.id, lastError: null });
-  showToast('Результат уже зафиксирован');
-  const duration = 860 + Math.max(0, event.outcomes.length - 1) * 70;
-  rollTimer = window.setTimeout(() => settleRoll(event.id), duration);
+  saveAppearance();
+  renderer?.setAppearance(state.appearance);
+  renderShowcase();
+  renderQuickSkins();
 }
 
-function settleRoll(id) {
-  if (!state.lastRoll || state.lastRoll.id !== id) return;
-  state.phase = 'settled';
-  persist();
-  renderScene();
-  setQa({ phase: 'settled', lastRollId: id });
-  showToast(`Итог: ${state.lastRoll.finalTotal}`);
+function addHistory(result) {
+  const id = `${Date.now()}-${secureInt(0x100000000).toString(16)}`;
+  state.history.unshift({ id, expression: result.expression, breakdown: result.breakdown, total: result.total });
+  state.history = state.history.slice(0, 12);
+  saveHistory();
+  renderHistory();
 }
 
-function loadFixture() {
-  if (!qaMode) return false;
-  const event = createRollFromOutcomes({ die: 'd20', count: 3, modifier: 2, mode: 'tower' }, [20, 1, 13], {
-    now: 1700000000000,
-    idFactory: () => 'fixture-roll-001',
-  });
-  state.request = event.request;
-  state.lastRoll = rollToHistoryEntry(event);
-  state.phase = 'settled';
-  qaState.fixture = true;
-  persist();
-  setView('roll');
-  renderControls();
-  renderScene();
-  setQa({ phase: 'settled', lastRollId: event.id, fixture: true });
-  showToast('QA fixture загружен');
-  return true;
+function handleRoll() {
+  if (state.busy || !renderer) return;
+  const result = resolveRoll({ sides: state.sides, count: state.count, modifier: state.modifier, perDieModifier: state.perDieModifier, mode: state.mode });
+  state.lastResult = result;
+  state.busy = true;
+  elements.rollButton.disabled = true;
+  elements.rollButton.classList.add("is-rolling");
+  elements.rollButton.querySelector("span:nth-child(2)").textContent = "Бросаем…";
+  elements.frameState.textContent = "ROLLING";
+  elements.sceneCaption.textContent = "Кости летят через башню…";
+  renderResult(result);
+  renderer.startRoll(result.values, result.sides);
 }
 
-async function copyText(value) {
-  const text = String(value ?? '');
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch (_) {}
-  const input = document.createElement('textarea');
-  input.value = text;
-  input.setAttribute('readonly', '');
-  input.style.position = 'fixed';
-  input.style.opacity = '0';
-  document.body.append(input);
-  input.select();
-  let copied = false;
-  try { copied = document.execCommand('copy'); } catch (_) { copied = false; }
-  input.remove();
-  return copied;
+function finishRoll(frameId) {
+  state.busy = false;
+  elements.rollButton.disabled = false;
+  elements.rollButton.classList.remove("is-rolling");
+  elements.rollButton.querySelector("span:nth-child(2)").textContent = "Бросок";
+  elements.frameState.textContent = "SETTLED";
+  elements.footerFrame.textContent = String(frameId);
+  elements.sceneCaption.textContent = `к${state.lastResult.sides} остановилась на ${state.lastResult.total}`;
+  addHistory(state.lastResult);
 }
 
-async function copyCurrentResult() {
-  if (!state.lastRoll) return showToast('Сначала сделай бросок');
-  const copied = await copyText(formatRollSummary(state.lastRoll));
-  showToast(copied ? 'Результат скопирован' : 'Не удалось скопировать');
-}
-
-async function copyManifest() {
-  const copied = await copyText(JSON.stringify(visualManifest(), null, 2));
-  showToast(copied ? 'QA manifest скопирован' : 'Не удалось скопировать manifest');
-}
-
-function detectRenderer() {
-  const probe = document.createElement('div');
-  const transformSupported = Boolean(probe.style && 'transform' in probe.style);
-  const preserve3dSupported = window.CSS?.supports
-    ? window.CSS.supports('transform-style', 'preserve-3d')
-    : transformSupported;
-  if (!transformSupported || !preserve3dSupported) {
-    setQa({ rendererStatus: 'failed', fallback: false, phase: 'error', lastError: 'css3d-unsupported', errorCount: qaState.errorCount + 1 });
-    refs.headerState.innerHTML = '<span class="state-dot"></span><span>RENDERER BLOCKED</span>';
-    return;
-  }
-  setQa({ rendererStatus: 'ready', fallback: false, phase: state.lastRoll ? 'settled' : 'idle', lastError: null });
-  refs.headerState.innerHTML = '<span class="state-dot"></span><span>СЦЕНА ГОТОВА</span>';
+function updateStepper(type, delta) {
+  if (type === "count") state.count = clampInteger(state.count + delta, 1, 8);
+  if (type === "modifier") state.modifier = clampInteger(state.modifier + delta, -99, 99);
+  renderComposer();
 }
 
 function bindEvents() {
-  document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
-  document.querySelectorAll('[data-die]').forEach((button) => button.addEventListener('click', () => updateRequest({ die: button.dataset.die })));
-  document.querySelectorAll('.mode-choice[data-mode]').forEach((button) => button.addEventListener('click', () => updateRequest({ mode: button.dataset.mode })));
-  document.querySelectorAll('[data-count-step]').forEach((button) => button.addEventListener('click', () => updateRequest({ count: Number(refs.diceCount.value) + Number(button.dataset.countStep) })));
-  refs.diceCount.addEventListener('input', () => updateRequest({ count: refs.diceCount.value }));
-  refs.modifier.addEventListener('input', () => updateRequest({ modifier: normalizeModifier(refs.modifier.value) }));
-  refs.rollButton.addEventListener('click', performRoll);
-  refs.copyResult.addEventListener('click', copyCurrentResult);
-  refs.clearHistory.addEventListener('click', () => {
-    state.history = [];
-    persist();
-    renderHistory();
-    showToast('История очищена');
-  });
-  refs.skinTabs.querySelectorAll('[data-skin-category]').forEach((button) => button.addEventListener('click', () => {
-    activeSkinCategory = SKIN_CATEGORIES.includes(button.dataset.skinCategory) ? button.dataset.skinCategory : 'dice';
-    renderSkinStudio();
+  document.querySelectorAll("[data-sides]").forEach(button => button.addEventListener("click", () => {
+    state.sides = Number(button.dataset.sides);
+    renderComposer();
+    elements.expression.textContent = formatExpression(state);
   }));
-  refs.qaFixture?.addEventListener('click', loadFixture);
-  refs.qaManifest?.addEventListener('click', copyManifest);
-  window.addEventListener('resize', renderQa, { passive: true });
-  window.addEventListener('error', (event) => setQa({ errorCount: qaState.errorCount + 1, lastError: String(event.message || 'window-error').slice(0, 160) }));
-  window.addEventListener('unhandledrejection', (event) => setQa({ errorCount: qaState.errorCount + 1, lastError: String(event.reason?.message || event.reason || 'unhandled-rejection').slice(0, 160) }));
+  document.querySelectorAll("[data-step]").forEach(button => button.addEventListener("click", () => updateStepper(button.dataset.step, Number(button.dataset.delta))));
+  elements.perDieModifier.addEventListener("change", event => { state.perDieModifier = event.target.checked; renderComposer(); });
+  document.querySelectorAll("[data-mode]").forEach(button => button.addEventListener("click", () => { state.mode = button.dataset.mode; renderComposer(); }));
+  elements.rollButton.addEventListener("click", handleRoll);
+  document.addEventListener("keydown", event => {
+    if (event.code === "Space" && !["INPUT", "TEXTAREA", "BUTTON"].includes(document.activeElement?.tagName)) { event.preventDefault(); handleRoll(); }
+  });
+  document.querySelector("#clear-history").addEventListener("click", () => { state.history = []; saveHistory(); renderHistory(); });
+  document.querySelector("#copy-result").addEventListener("click", async () => {
+    if (!state.lastResult) return;
+    const text = `${state.lastResult.expression} = ${state.lastResult.total} [${state.lastResult.values.join(", ")}]`;
+    try { await navigator.clipboard.writeText(text); } catch { /* clipboard may be unavailable in a WebView */ }
+    document.querySelector("#copy-result").textContent = "✓";
+    setTimeout(() => { document.querySelector("#copy-result").textContent = "⧉"; }, 1000);
+  });
+  document.querySelector("#open-skins").addEventListener("click", () => elements.showcase.scrollIntoView({ behavior: "smooth", block: "start" }));
+  document.querySelector("#close-skins").addEventListener("click", () => elements.showcase.classList.toggle("is-collapsed"));
+  document.querySelectorAll(".showcase-tab").forEach(tab => tab.addEventListener("click", () => { state.category = tab.dataset.category; renderShowcase(); }));
+  elements.showcaseGrid.addEventListener("click", event => { const card = event.target.closest("[data-material-key]"); if (card) chooseMaterial(card.dataset.materialKind, card.dataset.materialKey); });
+  elements.quickSkinList.addEventListener("click", event => { const button = event.target.closest("[data-quick-skin]"); if (button) chooseMaterial("dice", button.dataset.quickSkin); });
+  document.querySelector("#scene-spin-left").addEventListener("click", () => { renderer.orbit -= 0.35; });
+  document.querySelector("#scene-spin-right").addEventListener("click", () => { renderer.orbit += 0.35; });
 }
 
-installQaBridge();
-bindEvents();
-renderControls();
-renderHistory();
-renderSkinStudio();
-renderScene();
-detectRenderer();
-setView('roll');
+function boot() {
+  document.body.dataset.environment = state.appearance.environment;
+  renderComposer();
+  renderResult(null);
+  renderHistory();
+  renderShowcase();
+  renderQuickSkins();
+  bindEvents();
+  try {
+    renderer = new DiceRenderer(elements.canvas, { onSettled: finishRoll });
+    elements.webglStatus.textContent = "WebGL: готов";
+  } catch (error) {
+    console.error(error);
+    elements.webglStatus.textContent = "WebGL: недоступен";
+    elements.sceneFailure.hidden = false;
+    elements.rollButton.disabled = true;
+    elements.frameState.textContent = "ERROR";
+    elements.footerFrame.textContent = "—";
+    elements.sceneCaption.textContent = "Renderer недоступен";
+    elements.captureBadge.hidden = true;
+  }
+}
+
+boot();
