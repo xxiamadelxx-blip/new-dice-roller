@@ -8,15 +8,14 @@ import {
 } from './core.js?v=2';
 import {
   DEFAULT_APPEARANCE,
-  SCENE_SKINS,
   applyAppearanceToStage,
   getSkin,
   normalizeAppearance,
   renderDice,
-  renderSkinCards,
-  SKIN_CATEGORIES,
-} from './scene.js?v=2';
-import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js?v=2';
+  renderSkinMenus,
+} from './scene.js?v=3';
+import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js?v=3';
+import { triggerDiceFeedback } from './feedback.js?v=1';
 
 // v2 intentionally starts a clean desk so the QA tower fixture from the
 // previous candidate cannot become the normal landing screen.
@@ -44,7 +43,8 @@ const refs = {
   headerState: document.getElementById('header-state'),
   historyList: document.getElementById('history-list'),
   skinGrid: document.getElementById('skin-grid'),
-  skinTabs: document.getElementById('skin-tabs'),
+  soundToggle: document.getElementById('sound-toggle'),
+  hapticToggle: document.getElementById('haptic-toggle'),
   clearHistory: document.getElementById('clear-history'),
   qaPanel: document.getElementById('qa-panel'),
   qaFixture: document.getElementById('qa-fixture'),
@@ -54,7 +54,6 @@ const refs = {
 
 const qaMode = new URLSearchParams(window.location.search).get('qa') === '1';
 let activeView = 'roll';
-let activeSkinCategory = 'dice';
 let toastTimer = 0;
 let rollTimer = 0;
 let sceneRenderer = null;
@@ -80,7 +79,15 @@ function initialState() {
     history: [],
     lastRoll: null,
     phase: 'idle',
+    feedback: { sound: true, haptics: true },
   };
+}
+
+function normalizeFeedback(input = {}) {
+  return Object.freeze({
+    sound: input.sound !== false,
+    haptics: input.haptics !== false,
+  });
 }
 
 function safeStorage() {
@@ -130,6 +137,7 @@ function loadState() {
       history: restoredHistory,
       lastRoll: lastRollEvent ? rollToHistoryEntry(lastRollEvent) : null,
       phase: lastRollEvent ? 'settled' : 'idle',
+      feedback: normalizeFeedback(raw.feedback),
     };
   } catch (_) {
     return fallback;
@@ -253,6 +261,8 @@ function renderControls() {
   refs.modifier.value = String(state.request.modifier);
   refs.formulaReadout.textContent = formatFormula(state.request);
   refs.rollButtonFormula.textContent = formatFormula(state.request);
+  if (refs.soundToggle) refs.soundToggle.checked = state.feedback.sound;
+  if (refs.hapticToggle) refs.hapticToggle.checked = state.feedback.haptics;
 }
 
 function formatFormula(request) {
@@ -336,18 +346,13 @@ function formatTime(timestamp) {
 }
 
 function renderSkinStudio() {
-  renderSkinCards(document, refs.skinGrid, activeSkinCategory, state.appearance, (category, id) => {
+  renderSkinMenus(document, refs.skinGrid, state.appearance, (category, id) => {
     state.appearance = normalizeAppearance({ ...state.appearance, [category]: id });
     persist();
     renderSkinStudio();
     renderScene();
     const skin = getSkin(category, id);
     showToast(`${CATEGORY_LABELS[category]} · ${skin?.name || id}`);
-  });
-  refs.skinTabs.querySelectorAll('[data-skin-category]').forEach((button) => {
-    const selected = button.dataset.skinCategory === activeSkinCategory;
-    button.classList.toggle('is-selected', selected);
-    button.setAttribute('aria-selected', selected ? 'true' : 'false');
   });
 }
 
@@ -386,6 +391,12 @@ function performRoll() {
   persist();
   renderScene();
   setQa({ phase: 'rolling', lastRollId: event.id, lastError: null });
+  triggerDiceFeedback({
+    count: event.outcomes.length,
+    sound: state.feedback.sound,
+    haptics: state.feedback.haptics,
+    phase: 'roll',
+  });
   showToast('Результат уже зафиксирован');
   const duration = 860 + Math.max(0, event.outcomes.length - 1) * 70;
   rollTimer = window.setTimeout(() => settleRoll(event.id), duration);
@@ -397,7 +408,15 @@ function settleRoll(id) {
   persist();
   renderScene();
   setQa({ phase: 'settled', lastRollId: id });
+  if (state.feedback.haptics) triggerDiceFeedback({ sound: false, haptics: true, phase: 'settle' });
   showToast(`Итог: ${state.lastRoll.finalTotal}`);
+}
+
+function updateFeedback(patch) {
+  state.feedback = normalizeFeedback({ ...state.feedback, ...patch });
+  persist();
+  renderControls();
+  showToast(state.feedback.sound || state.feedback.haptics ? 'Отклик включён' : 'Отклик выключен');
 }
 
 function loadFixture() {
@@ -494,6 +513,8 @@ function bindEvents() {
   refs.diceCount.addEventListener('change', () => updateRequest({ count: refs.diceCount.value }));
   refs.modifier.addEventListener('change', () => updateRequest({ modifier: normalizeModifier(refs.modifier.value) }));
   refs.rollButton.addEventListener('click', performRoll);
+  refs.soundToggle?.addEventListener('change', () => updateFeedback({ sound: refs.soundToggle.checked }));
+  refs.hapticToggle?.addEventListener('change', () => updateFeedback({ haptics: refs.hapticToggle.checked }));
   refs.copyResult.addEventListener('click', copyCurrentResult);
   refs.clearHistory.addEventListener('click', () => {
     state.history = [];
@@ -501,10 +522,6 @@ function bindEvents() {
     renderHistory();
     showToast('История очищена');
   });
-  refs.skinTabs.querySelectorAll('[data-skin-category]').forEach((button) => button.addEventListener('click', () => {
-    activeSkinCategory = SKIN_CATEGORIES.includes(button.dataset.skinCategory) ? button.dataset.skinCategory : 'dice';
-    renderSkinStudio();
-  }));
   refs.qaFixture?.addEventListener('click', loadFixture);
   refs.qaManifest?.addEventListener('click', copyManifest);
   window.addEventListener('resize', () => {
