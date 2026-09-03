@@ -215,6 +215,15 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
     var(--table-background, #070b0a);
 }
 
+.scene-canvas {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .scene-atmosphere,
 .scene-stars,
 .scene-light { position: absolute; pointer-events: none; }
@@ -668,6 +677,23 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 
 .toast { position: fixed; z-index: 30; right: 16px; bottom: 84px; left: 16px; width: fit-content; max-width: calc(100% - 32px); margin: auto; padding: 10px 13px; border: 1px solid rgba(214, 179, 108, .35); border-radius: 10px; opacity: 0; pointer-events: none; color: #f0dfb8; background: rgba(12, 18, 16, .94); box-shadow: 0 12px 28px rgba(0, 0, 0, .32); font-size: 10px; text-align: center; transform: translateY(8px); transition: opacity .18s ease, transform .18s ease; }
 .toast.is-visible { opacity: 1; transform: translateY(0); }
+
+/* WebGL owns the scene. These legacy decorative nodes stay in the DOM only as
+   authored markup references; they never become a silent visual fallback. */
+.scene-stage .scene-atmosphere,
+.scene-stage .scene-stars,
+.scene-stage .scene-object,
+.scene-stage .scene-light { display: none; }
+.scene-stage.webgl-active .die-token { filter: none; }
+.scene-stage.webgl-active .die-shell {
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  clip-path: none;
+}
+.scene-stage.webgl-active .die-shell::before,
+.scene-stage.webgl-active .die-shell::after { display: none; }
 
 @media (min-width: 700px) {
   .app-shell { padding-right: 24px; padding-left: 24px; }
