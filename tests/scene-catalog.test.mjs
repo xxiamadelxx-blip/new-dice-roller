@@ -7,6 +7,7 @@ import {
   SKIN_CATEGORIES,
   normalizeAppearance,
 } from '../src/scene.js';
+import { WEBGL_PROFILE } from '../src/webgl-scene.js';
 
 test('greenfield scene catalog has independent authored layers', () => {
   assert.deepEqual(SKIN_CATEGORIES, ['dice', 'tray', 'tower', 'table']);
@@ -21,4 +22,8 @@ test('appearance normalization never changes the dice catalog', () => {
   assert.equal(appearance.dice, DEFAULT_APPEARANCE.dice);
   assert.equal(appearance.tray, 'star-covenant');
   assert.deepEqual(DIE_TYPES.map((die) => die.id), ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100']);
+});
+
+test('WebGL renderer exposes the Visual Lab profile', () => {
+  assert.equal(WEBGL_PROFILE, 'adel-dice-webgl-v1');
 });
