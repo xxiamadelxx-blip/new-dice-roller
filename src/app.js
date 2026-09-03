@@ -5,7 +5,7 @@ import {
   normalizeModifier,
   normalizeRollRequest,
   rollToHistoryEntry,
-} from './core.js';
+} from './core.js?v=2';
 import {
   DEFAULT_APPEARANCE,
   SCENE_SKINS,
@@ -15,8 +15,8 @@ import {
   renderDice,
   renderSkinCards,
   SKIN_CATEGORIES,
-} from './scene.js';
-import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js';
+} from './scene.js?v=2';
+import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js?v=2';
 
 // v2 intentionally starts a clean desk so the QA tower fixture from the
 // previous candidate cannot become the normal landing screen.
