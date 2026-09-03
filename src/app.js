@@ -18,7 +18,9 @@ import {
 } from './scene.js';
 import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js';
 
-const STORAGE_KEY = 'new-dice-roller-state-v1';
+// v2 intentionally starts a clean desk so the QA tower fixture from the
+// previous candidate cannot become the normal landing screen.
+const STORAGE_KEY = 'new-dice-roller-state-v2';
 const QA_PROFILE = WEBGL_PROFILE;
 const HISTORY_LIMIT = 40;
 const MODE_LABELS = Object.freeze({ table: 'СТОЛ', tray: 'ЛОТОК', tower: 'БАШНЯ' });
