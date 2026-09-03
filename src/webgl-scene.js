@@ -38,8 +38,12 @@ void main() {
   vec3 rim_light = normalize(vec3(0.72, 0.28, -0.65));
   float diffuse = 0.34 + max(dot(normal, primary_light), 0.0) * 0.64;
   float rim = pow(1.0 - max(dot(normal, rim_light), 0.0), 3.0) * 0.14;
+  float grain = sin(dot(v_world * vec3(1.15, 0.72, 1.38), vec3(12.9898, 78.233, 37.719)));
+  float mineral = (grain * 0.5 + 0.5) * 0.055;
   float ember = (sin(u_time * 0.0014 + v_world.x * 0.7 + v_world.z * 0.35) + 1.0) * 0.018;
-  out_color = vec4(v_color.rgb * (diffuse + rim + ember), v_color.a);
+  vec3 half_vector = normalize(primary_light + vec3(0.0, 0.75, 0.55));
+  float specular = pow(max(dot(normal, half_vector), 0.0), 28.0) * 0.20;
+  out_color = vec4(v_color.rgb * (diffuse + rim + mineral + ember) + specular, v_color.a);
 }
 `;
 
@@ -130,7 +134,7 @@ function addBox(mesh, center, dimensions, color, rotation = [0, 0, 0]) {
   ];
   faces.forEach((face, index) => {
     const faceColor = tint(color, index === 4 ? 0.12 : index === 1 ? -0.14 : (index % 3) * 0.025);
-    pushQuad(mesh, face.points.map((point) => transformPoint(point, center, 1, rotation)), face.normal, faceColor);
+    pushQuad(mesh, face.points.map((point) => transformPoint(point, center, 1, rotation)), rotatePoint(face.normal, rotation), faceColor);
   });
 }
 
@@ -184,6 +188,57 @@ function addRing(mesh, center, outerRadii, innerRadii, y, color, sides = 8, rota
     const next = (index + 1) % sides;
     pushQuad(mesh, [outer[index], outer[next], inner[next], inner[index]], [0, 1, 0], tint(color, (index % 2) * 0.04));
   }
+}
+
+function addTopSegment(mesh, start, end, y, width, color) {
+  const dx = end[0] - start[0];
+  const dz = end[1] - start[1];
+  const magnitude = Math.hypot(dx, dz) || 1;
+  const halfWidth = width / 2;
+  const offset = [-dz / magnitude * halfWidth, dx / magnitude * halfWidth];
+  const points = [
+    [start[0] + offset[0], y, start[1] + offset[1]],
+    [end[0] + offset[0], y, end[1] + offset[1]],
+    [end[0] - offset[0], y, end[1] - offset[1]],
+    [start[0] - offset[0], y, start[1] - offset[1]],
+  ];
+  pushQuad(mesh, points, [0, 1, 0], color);
+}
+
+function addTopArc(mesh, center, radii, startAngle, endAngle, y, width, color, segments = 16) {
+  let previous = [
+    center[0] + Math.cos(startAngle) * radii[0],
+    center[1] + Math.sin(startAngle) * radii[1],
+  ];
+  for (let index = 1; index <= segments; index += 1) {
+    const angle = startAngle + (endAngle - startAngle) * index / segments;
+    const next = [
+      center[0] + Math.cos(angle) * radii[0],
+      center[1] + Math.sin(angle) * radii[1],
+    ];
+    addTopSegment(mesh, previous, next, y, width, color);
+    previous = next;
+  }
+}
+
+function addLeaf(mesh, center, lengthValue, width, angle, y, color) {
+  const direction = [Math.cos(angle), Math.sin(angle)];
+  const perpendicular = [-direction[1], direction[0]];
+  const tip = [center[0] + direction[0] * lengthValue / 2, center[1] + direction[1] * lengthValue / 2];
+  const base = [center[0] - direction[0] * lengthValue / 2, center[1] - direction[1] * lengthValue / 2];
+  const left = [center[0] + perpendicular[0] * width / 2, center[1] + perpendicular[1] * width / 2];
+  const right = [center[0] - perpendicular[0] * width / 2, center[1] - perpendicular[1] * width / 2];
+  pushQuad(mesh, [
+    [tip[0], y, tip[1]],
+    [left[0], y, left[1]],
+    [base[0], y, base[1]],
+    [right[0], y, right[1]],
+  ], [0, 1, 0], color);
+  addTopSegment(mesh, base, tip, y + 0.006, Math.max(0.012, width * 0.08), tint(color, -0.18));
+}
+
+function addTopDot(mesh, center, y, radius, color) {
+  addPrism(mesh, [center[0], y, center[1]], [radius, radius], 0.025, 12, color, 0);
 }
 
 function addOctagonFloor(mesh, center, radii, y, color, sides = 8, rotation = Math.PI / 8) {
@@ -283,7 +338,7 @@ function dodecahedron() {
   return { vertices, faces };
 }
 
-function addPolyhedron(mesh, shape, center, size, color, accent, rotation, squash = [1, 1, 1]) {
+function addPolyhedron(mesh, shape, center, size, color, accent, rotation, squash = [1, 1, 1], family = 'obsidian') {
   shape.faces.forEach((face, faceIndex) => {
     const points = face.map((index) => {
       const vertex = shape.vertices[index];
@@ -294,6 +349,19 @@ function addPolyhedron(mesh, shape, center, size, color, accent, rotation, squas
     const shaded = tint(highlight, ((faceIndex % 4) - 1.5) * 0.045);
     for (let index = 1; index < points.length - 1; index += 1) {
       pushTriangle(mesh, [points[0], points[index], points[index + 1]], normal, shaded);
+    }
+
+    // A smaller raised facet gives mineral and glass finishes a deliberate cut
+    // surface without importing a texture or a third-party model.
+    const centroid = points.reduce((sum, point) => add(sum, point), [0, 0, 0]).map((value) => value / points.length);
+    const insetScale = family === 'opal' || family === 'bloodglass' ? 0.82 : 0.86;
+    const inset = points.map((point) => add(
+      centroid,
+      add(scale(sub(point, centroid), insetScale), scale(normal, 0.008)),
+    ));
+    const facetColor = mixColor(shaded, accent, family === 'obsidian' ? 0.13 : 0.19);
+    for (let index = 1; index < inset.length - 1; index += 1) {
+      pushTriangle(mesh, [inset[0], inset[index], inset[index + 1]], normal, facetColor);
     }
   });
 }
@@ -324,6 +392,17 @@ function layoutDice(count) {
   return positions;
 }
 
+function addTableOrnament(mesh, tableSkin) {
+  const accent = parseHex(tableSkin.accent);
+  const mutedAccent = tint(accent, -0.28);
+  const y = 0.025;
+  addTopArc(mesh, [0, 0], [3.72, 2.18], 0.20, 1.32, y, 0.018, tint(mutedAccent, -0.10), 24);
+  addTopArc(mesh, [0, 0], [3.72, 2.18], Math.PI - 1.32, Math.PI - 0.20, y, 0.018, tint(mutedAccent, -0.10), 24);
+  addTopSegment(mesh, [-0.45, -0.82], [0, -1.02], y, 0.018, mutedAccent);
+  addTopSegment(mesh, [0, -1.02], [0.45, -0.82], y, 0.018, mutedAccent);
+  addTopDot(mesh, [0, 0], y + 0.004, 0.045, accent);
+}
+
 function addTable(mesh, tableSkin) {
   const surface = parseHex(tableSkin.surface);
   const edge = parseHex(tableSkin.edge);
@@ -332,6 +411,53 @@ function addTable(mesh, tableSkin) {
   addBox(mesh, [0, -0.08, 0], [8.85, 0.14, 5.56], surface);
   addRing(mesh, [0, 0.01, 0], [3.5, 2.0], [3.44, 1.94], 0.01, tint(accent, -0.25), 32, 0);
   addRing(mesh, [0, 0.01, 0], [1.2, 0.66], [1.16, 0.62], 0.015, tint(accent, -0.18), 24, 0);
+  addTableOrnament(mesh, tableSkin);
+}
+
+function addTrayOrnament(mesh, traySkin) {
+  const accent = parseHex(traySkin.accent);
+  const darkAccent = tint(accent, -0.26);
+  const brightAccent = tint(accent, 0.12);
+  const center = [0, 0.16];
+  const y = 0.335;
+
+  addRing(mesh, [center[0], 0, center[1]], [1.48, 0.84], [1.43, 0.79], y, darkAccent, 32, 0);
+  addTopDot(mesh, center, y + 0.012, 0.055, brightAccent);
+
+  if (traySkin.family === 'star') {
+    const constellation = [
+      [-1.05, 0.42], [-0.46, 0.72], [0.10, 0.45], [0.80, 0.68], [1.08, 0.12],
+      [-0.75, -0.40], [-0.13, -0.62], [0.56, -0.46],
+    ].map(([x, z]) => [x, z + center[1]]);
+    [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [2, 6]].forEach(([from, to]) => {
+      addTopSegment(mesh, constellation[from], constellation[to], y, 0.018, darkAccent);
+    });
+    constellation.forEach((point, index) => addTopDot(mesh, point, y + 0.012, index % 3 === 0 ? 0.052 : 0.032, brightAccent));
+    return;
+  }
+
+  if (traySkin.family === 'forge') {
+    addTopSegment(mesh, [0, center[1] - 0.72], [0, center[1] + 0.80], y, 0.032, darkAccent);
+    addTopArc(mesh, center, [1.18, 0.58], 0.22, 1.36, y, 0.032, brightAccent, 16);
+    addTopArc(mesh, center, [1.18, 0.58], Math.PI - 1.36, Math.PI - 0.22, y, 0.032, brightAccent, 16);
+    addLeaf(mesh, [-0.38, center[1] + 0.30], 0.54, 0.18, -0.72, y, accent);
+    addLeaf(mesh, [0.38, center[1] + 0.30], 0.54, 0.18, Math.PI + 0.72, y, accent);
+    addLeaf(mesh, [-0.43, center[1] - 0.30], 0.48, 0.16, 0.72, y, darkAccent);
+    addLeaf(mesh, [0.43, center[1] - 0.30], 0.48, 0.16, Math.PI - 0.72, y, darkAccent);
+    return;
+  }
+
+  // The wood and moss variants use a hand-drawn botanical/butterfly-like
+  // centerpiece, echoing the engraved tray reference with original geometry.
+  addTopSegment(mesh, [0, center[1] - 0.74], [0, center[1] + 0.78], y, 0.025, darkAccent);
+  addTopArc(mesh, center, [1.22, 0.55], 0.18, 1.38, y, 0.026, brightAccent, 18);
+  addTopArc(mesh, center, [1.22, 0.55], Math.PI - 1.38, Math.PI - 0.18, y, 0.026, brightAccent, 18);
+  addTopArc(mesh, center, [0.94, 0.40], Math.PI * 1.16, Math.PI * 1.78, y, 0.022, darkAccent, 14);
+  addTopArc(mesh, center, [0.94, 0.40], -Math.PI * 0.78, -Math.PI * 0.16, y, 0.022, darkAccent, 14);
+  addLeaf(mesh, [-0.50, center[1] + 0.28], 0.48, 0.17, -0.76, y, accent);
+  addLeaf(mesh, [0.50, center[1] + 0.28], 0.48, 0.17, Math.PI + 0.76, y, accent);
+  addLeaf(mesh, [-0.42, center[1] - 0.30], 0.40, 0.15, 0.70, y, darkAccent);
+  addLeaf(mesh, [0.42, center[1] - 0.30], 0.40, 0.15, Math.PI - 0.70, y, darkAccent);
 }
 
 function addTray(mesh, traySkin) {
@@ -343,6 +469,11 @@ function addTray(mesh, traySkin) {
   addOctagonFloor(mesh, [0, 0, 0.16], [3.28, 1.90], 0.23, floor);
   addRing(mesh, [0, 0, 0.16], [3.75, 2.37], [3.29, 1.91], 0.27, rim);
   addRing(mesh, [0, 0, 0.16], [2.3, 1.28], [2.22, 1.20], 0.25, tint(accent, -0.12), 24, 0);
+  addRing(mesh, [0, 0, 0.16], [3.22, 1.84], [3.13, 1.75], 0.30, tint(rim, -0.12), 8, Math.PI / 8);
+  [[-3.02, -1.56], [3.02, -1.56], [-3.02, 1.56], [3.02, 1.56]].forEach(([x, z]) => {
+    addTopDot(mesh, [x, z + 0.16], 0.325, 0.07, accent);
+  });
+  addTrayOrnament(mesh, traySkin);
 }
 
 function addTower(mesh, towerSkin) {
@@ -350,18 +481,34 @@ function addTower(mesh, towerSkin) {
   const dark = parseHex(towerSkin.dark);
   const metal = parseHex(towerSkin.metal);
   const accent = parseHex(towerSkin.accent);
-  addBox(mesh, [0, 0.22, -0.55], [2.65, 0.42, 1.78], metal);
-  addBox(mesh, [0, 0.47, -0.55], [2.35, 0.26, 1.52], body);
-  addBox(mesh, [0, 2.28, -0.55], [1.92, 3.32, 1.32], body);
-  addBox(mesh, [-0.98, 2.28, 0.08], [0.16, 3.22, 0.15], metal);
-  addBox(mesh, [0.98, 2.28, 0.08], [0.16, 3.22, 0.15], metal);
-  addBox(mesh, [0, 2.28, 0.105], [1.52, 1.34, 0.08], dark);
-  addFrustum(mesh, [0, 3.84, -0.55], [1.18, 0.88], [1.48, 1.08], 0.42, 8, metal, Math.PI / 8);
-  addBox(mesh, [0, 4.08, -0.55], [2.86, 0.28, 1.84], metal);
-  addBox(mesh, [0, 4.21, -0.55], [2.45, 0.12, 1.52], body);
-  addBox(mesh, [0.84, 1.26, 0.15], [0.74, 0.54, 0.12], dark);
-  addBox(mesh, [0.84, 1.26, 0.23], [0.55, 0.30, 0.06], accent);
-  addBox(mesh, [-0.84, 1.35, 0.16], [0.08, 0.55, 0.08], accent);
+  const centerZ = -0.55;
+  const frontZ = centerZ + 0.84;
+  addPrism(mesh, [0, 0.22, centerZ], [1.50, 1.08], 0.32, 12, metal, Math.PI / 12);
+  addRing(mesh, [0, 0, centerZ], [1.38, 0.98], [1.12, 0.76], 0.405, metal, 12, Math.PI / 12);
+  addPrism(mesh, [0, 2.12, centerZ], [1.08, 0.82], 3.34, 12, body, Math.PI / 12);
+  addRing(mesh, [0, 0, centerZ], [1.11, 0.85], [1.01, 0.75], 0.58, tint(metal, -0.10), 12, Math.PI / 12);
+  addRing(mesh, [0, 0, centerZ], [1.11, 0.85], [1.01, 0.75], 3.68, tint(metal, -0.10), 12, Math.PI / 12);
+
+  // A dark front channel makes the tower read as a functional chute instead
+  // of a decorative rectangular block.
+  addBox(mesh, [0, 2.15, frontZ + 0.035], [1.05, 1.82, 0.07], dark);
+  addBox(mesh, [0, 2.15, frontZ + 0.082], [0.90, 1.60, 0.025], tint(dark, 0.12));
+  addBox(mesh, [-0.92, 2.15, frontZ + 0.035], [0.12, 2.72, 0.12], metal);
+  addBox(mesh, [0.92, 2.15, frontZ + 0.035], [0.12, 2.72, 0.12], metal);
+  addBox(mesh, [-0.50, 2.15, frontZ + 0.085], [0.035, 2.30, 0.025], tint(metal, -0.16));
+  addBox(mesh, [0.50, 2.15, frontZ + 0.085], [0.035, 2.30, 0.025], tint(metal, -0.16));
+
+  addPrism(mesh, [0, 0.75, frontZ + 0.10], [0.80, 0.24], 0.42, 8, dark, Math.PI / 8);
+  addBox(mesh, [0, 0.88, frontZ + 0.31], [1.34, 0.12, 0.28], metal, [0.10, 0, 0]);
+  addBox(mesh, [0, 0.89, frontZ + 0.47], [0.98, 0.05, 0.16], accent, [0.10, 0, 0]);
+
+  addFrustum(mesh, [0, 3.92, centerZ], [1.14, 0.88], [1.36, 1.04], 0.38, 12, metal, Math.PI / 12);
+  addRing(mesh, [0, 0, centerZ], [1.35, 1.04], [1.10, 0.80], 4.13, accent, 12, Math.PI / 12);
+  addRing(mesh, [0, 0, centerZ], [1.08, 0.80], [0.80, 0.56], 4.145, tint(dark, -0.12), 12, Math.PI / 12);
+  addBox(mesh, [0, 4.18, centerZ], [2.54, 0.16, 1.80], metal);
+  addBox(mesh, [0, 4.28, centerZ], [2.12, 0.08, 1.46], body);
+  addBox(mesh, [-0.78, 1.15, frontZ + 0.10], [0.16, 0.12, 0.08], accent);
+  addBox(mesh, [0.78, 1.15, frontZ + 0.10], [0.16, 0.12, 0.08], accent);
 }
 
 function buildMesh(state, time) {
@@ -394,6 +541,7 @@ function buildMesh(state, time) {
       dieAccent,
       [spin * 0.42, spin, index * 0.13],
       squash,
+      diceSkin.family,
     );
   });
   return mesh;
@@ -460,7 +608,7 @@ export const WEBGL_PROFILE = 'adel-dice-webgl-v1';
 
 export function createWebglScene(canvas, options = {}) {
   if (!canvas) throw new Error('webgl-canvas-missing');
-  const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, preserveDrawingBuffer: true });
+  const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, preserveDrawingBuffer: true });
   if (!gl) throw new Error('webgl2-unavailable');
   const program = createProgram(gl);
   const vao = gl.createVertexArray();
@@ -519,9 +667,9 @@ export function createWebglScene(canvas, options = {}) {
   function draw(time) {
     if (disposed) return;
     resize();
-    const tableSkin = getSkin('table', normalizeAppearance(renderState.appearance).table);
-    const background = parseHex(tableSkin.background);
-    gl.clearColor(background[0], background[1], background[2], 1);
+    // The authored CSS atmosphere remains visible behind the real WebGL
+    // geometry; the canvas is still the only renderer for the scene objects.
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const mesh = buildMesh(renderState, time);
     gl.useProgram(program);
