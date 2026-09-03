@@ -17,9 +17,9 @@ import {
 import { createWebglScene, WEBGL_PROFILE } from './webgl-scene.js?v=3';
 import { triggerDiceFeedback } from './feedback.js?v=1';
 
-// v2 intentionally starts a clean desk so the QA tower fixture from the
-// previous candidate cannot become the normal landing screen.
-const STORAGE_KEY = 'new-dice-roller-state-v2';
+// v3 starts a clean desk so state from the previous tower candidate cannot
+// become the normal landing screen after the visual reset.
+const STORAGE_KEY = 'new-dice-roller-state-v3';
 const QA_PROFILE = WEBGL_PROFILE;
 const HISTORY_LIMIT = 40;
 const MODE_LABELS = Object.freeze({ table: 'СТОЛ', tray: 'ЛОТОК', tower: 'БАШНЯ' });
