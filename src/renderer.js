@@ -1,5 +1,6 @@
 import { faceNumbers } from "./dice.js";
 import { announceWebGlBoot, announceWebGlError, announceWebGlReady, announceWebGlRolling } from "./qa.js";
+import { secureInt } from "./rng.js";
 
 const TAU = Math.PI * 2;
 const UP = [0, 1, 0];
@@ -450,8 +451,9 @@ function createProgram(gl) {
 }
 
 function randomQuaternion() {
-  const axis = normalize([Math.sin(Math.random() * TAU), Math.cos(Math.random() * TAU), Math.sin(Math.random() * TAU)]);
-  return quatFromAxisAngle(axis, Math.random() * TAU);
+  const unit = () => secureInt(0x1000000) / 0x1000000;
+  const axis = normalize([Math.sin(unit() * TAU), Math.cos(unit() * TAU), Math.sin(unit() * TAU)]);
+  return quatFromAxisAngle(axis, unit() * TAU);
 }
 
 function scaleForSides(sides) {
@@ -546,7 +548,8 @@ export class DiceRenderer {
     this.environmentKey = "cartographer";
     announceWebGlBoot();
     try {
-      this.gl = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+      const contextOptions = { antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "high-performance" };
+      this.gl = canvas.getContext("webgl2", contextOptions) || canvas.getContext("webgl", contextOptions);
       if (!this.gl) throw new Error("WebGL context unavailable");
       this.program = createProgram(this.gl);
       this.locations = {
