@@ -6,10 +6,11 @@
 - открытие рассчитано на `http://` или `https://`;
 - основной smoke URL: `/?qa=1`;
 - semantic QA bridge: `window.__NDR_QA__`;
+- renderer profile: `adel-dice-webgl-v1` / `webgl2-canvas-v1`;
 - `getState()` возвращает профиль, renderer status, phase, frame и последний roll;
 - `getManifest()` возвращает технический candidate manifest;
 - `loadFixture()` загружает `d20 × 3 + 2` с исходами `[20, 1, 13]` и итогом `36`;
-- `fallback=false`: при отсутствии CSS 3D приложение фиксирует renderer error, а не скрывает проблему альтернативным рендером.
+- `fallback=false`: при отсутствии WebGL2 приложение блокирует бросок и фиксирует renderer error, а не скрывает проблему CSS/2D-рендером.
 
 ## Cloud Test Stand boundary
 
