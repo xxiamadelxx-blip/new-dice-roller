@@ -678,12 +678,12 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .toast { position: fixed; z-index: 30; right: 16px; bottom: 84px; left: 16px; width: fit-content; max-width: calc(100% - 32px); margin: auto; padding: 10px 13px; border: 1px solid rgba(214, 179, 108, .35); border-radius: 10px; opacity: 0; pointer-events: none; color: #f0dfb8; background: rgba(12, 18, 16, .94); box-shadow: 0 12px 28px rgba(0, 0, 0, .32); font-size: 10px; text-align: center; transform: translateY(8px); transition: opacity .18s ease, transform .18s ease; }
 .toast.is-visible { opacity: 1; transform: translateY(0); }
 
-/* WebGL owns the scene. These legacy decorative nodes stay in the DOM only as
-   authored markup references; they never become a silent visual fallback. */
-.scene-stage .scene-atmosphere,
-.scene-stage .scene-stars,
-.scene-stage .scene-object,
-.scene-stage .scene-light { display: none; }
+/* WebGL owns the scene objects. The authored atmosphere is an intentional
+   transparent backdrop for the canvas, never a 2D fallback renderer. */
+.scene-stage .scene-atmosphere { display: block; z-index: 0; }
+.scene-stage .scene-stars { display: block; z-index: 1; }
+.scene-stage .scene-light { display: block; z-index: 5; }
+.scene-stage .scene-object { display: none; }
 .scene-stage.webgl-active .die-token { filter: none; }
 .scene-stage.webgl-active .die-shell {
   overflow: visible;
@@ -694,6 +694,7 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 }
 .scene-stage.webgl-active .die-shell::before,
 .scene-stage.webgl-active .die-shell::after { display: none; }
+.scene-stage.webgl-active .die-shell-value { text-shadow: 0 2px 0 rgba(0, 0, 0, .55), 0 0 14px color-mix(in srgb, var(--die-accent) 58%, transparent); }
 
 @media (min-width: 700px) {
   .app-shell { padding-right: 24px; padding-left: 24px; }
