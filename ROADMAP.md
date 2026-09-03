@@ -10,8 +10,8 @@ The product is deliberately independent from every existing dice roller. This ro
 
 - M0 boundaries and allowed-integration audit: confirmed.
 - M1 roll core: confirmed by 11 passing Node tests and syntax checks.
-- M2 scene, M3 Skin Studio and M4 QA bridge: implemented with an own WebGL2 renderer as candidate, pending real visual capture and user approval.
-- M5 Ø Browser: source contract is implemented; live smoke is held because the cloud browser cannot reach the local/private entry point and repository Pages is not enabled for the integration token.
+- M2 scene, M3 Skin Studio and M4 QA bridge: implemented with an own WebGL2 renderer, procedural material catalog and candidate scene, pending real visual capture and user approval.
+- M5 Ø Browser: source contract is implemented; live smoke is held because the repository Pages workflow cannot create the Pages site with the current integration token (`Resource not accessible by integration`).
 - M6 Cloud Test Stand: held because this deliverable is static web, not an Android APK. No native pass is claimed.
 
 ## Current sequence
