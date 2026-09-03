@@ -445,6 +445,8 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
 .dice-empty span { color: var(--gold); font-size: 29px; opacity: .62; }
 .dice-empty strong { color: #c3c8bd; font-family: Georgia, serif; font-size: 15px; font-weight: 400; }
 .dice-empty small { color: var(--muted-dark); font-size: 9px; letter-spacing: .05em; }
+.dice-empty-failed span { color: var(--danger); }
+.dice-empty-failed strong { color: #e1b9b0; }
 
 .die-token {
   position: relative;
@@ -494,6 +496,11 @@ h1 i, h2 i { color: var(--gold-bright); font-style: italic; }
 .die-token-verdant .die-shell { --die-body: #1f4a3d; }
 .die-token-bloodglass .die-shell { --die-body: #6d202b; }
 .die-token-opal .die-shell { --die-body: #c9d2d2; }
+.die-token-bloodstone .die-shell { --die-body: #3c282c; }
+.die-token-fluorite .die-shell { --die-body: #302247; }
+.die-token-sandstone .die-shell { --die-body: #163653; }
+.die-token-quartz .die-shell { --die-body: #6e424d; }
+.die-token-prism .die-shell { --die-body: #3d6170; }
 
 .die-token-tetra { width: clamp(65px, 17vw, 92px); }
 .die-token-cube .die-shell { border-radius: 16%; transform: rotate(-5deg) skewY(-2deg); }
@@ -620,6 +627,11 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .mini-die-verdant { clip-path: polygon(50% 1%, 86% 13%, 99% 45%, 86% 87%, 50% 99%, 14% 87%, 1% 45%, 14% 13%); }
 .mini-die-bloodglass { border-radius: 34%; transform: rotate(8deg); }
 .mini-die-opal { clip-path: polygon(50% 1%, 88% 20%, 96% 76%, 50% 99%, 4% 76%, 12% 20%); }
+.mini-die-bloodstone { border-radius: 21%; background: repeating-linear-gradient(151deg, transparent 0 8px, rgba(181, 204, 126, .16) 9px 11px), linear-gradient(145deg, #65424a, var(--preview-body) 48%, #21181e); }
+.mini-die-fluorite { clip-path: polygon(50% 1%, 91% 25%, 83% 84%, 50% 99%, 17% 84%, 9% 25%); background: linear-gradient(126deg, #6f56a1, var(--preview-body) 42%, #1a1330); }
+.mini-die-sandstone { border-radius: 28%; background: radial-gradient(circle at 23% 28%, var(--preview-highlight, #d5fbff) 0 2px, transparent 3px), radial-gradient(circle at 74% 68%, var(--preview-accent) 0 1px, transparent 2px), linear-gradient(145deg, #2f607e, var(--preview-body) 52%, #0d2038); }
+.mini-die-quartz { border-radius: 28% 18% 31% 16%; background: linear-gradient(155deg, #d78d9d, var(--preview-body) 45%, #39202d); }
+.mini-die-prism { clip-path: polygon(50% 1%, 91% 17%, 98% 74%, 63% 99%, 12% 84%, 3% 28%); background: linear-gradient(125deg, #a3e3dc, var(--preview-body) 38%, #182e4d 72%, #6a4e9f); }
 
 .mini-tray { position: relative; z-index: 1; width: 63px; height: 48px; clip-path: polygon(10% 0, 90% 0, 100% 18%, 100% 82%, 90% 100%, 10% 100%, 0 82%, 0 18%); background: var(--preview-accent); box-shadow: 0 7px 8px rgba(0, 0, 0, .35); }
 .mini-tray::before { position: absolute; inset: 5px; clip-path: inherit; background: var(--preview-dark); content: ""; }
