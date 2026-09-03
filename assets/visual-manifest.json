@@ -10,7 +10,9 @@
     "fallback": false,
     "source_boundary": "greenfield",
     "scene_objects": "procedural-webgl2-geometry",
-    "atmosphere": "authored-css-behind-transparent-canvas"
+    "atmosphere": "authored-css-behind-transparent-canvas",
+    "camera": "isometric-3-quarter",
+    "feedback": ["procedural-dice-audio", "navigator-vibrate-best-effort"]
   },
   "provenance": {
     "source_type": "user-provided-moodboard",
