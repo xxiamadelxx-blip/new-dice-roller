@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "project": "new-dice-roller",
+  "candidate_status": "candidate",
+  "artistic_approval": "pending_user",
+  "runtime": {
+    "renderer": "webgl-procedural-v1",
+    "external_assets": false,
+    "fallback": false,
+    "source_boundary": "greenfield"
+  },
+  "reference_policy": "User-provided images are a moodboard only; no bitmap or third-party runtime source is imported.",
+  "visual_references": [
+    { "id": "1000046419.jpg", "role": "mobile information hierarchy" },
+    { "id": "1000046345.jpg", "role": "wooden dice tower silhouette" },
+    { "id": "1000046347.jpg", "role": "cartographic background atmosphere" },
+    { "id": "1000046348.jpg", "role": "fantasy mountain background" },
+    { "id": "1000046343.jpg", "role": "warm tabletop palette" },
+    { "id": "1000046342.jpg", "role": "leather tray material" },
+    { "id": "1000046340.jpg", "role": "mineral dice palette" },
+    { "id": "1000046341.jpg", "role": "premium dice color and number contrast" },
+    { "id": "1000044785.jpg", "role": "d100 scale and blue accent" },
+    { "id": "1000044783.jpg", "role": "neutral D&D dice reference" }
+  ],
+  "material_families": {
+    "dice": ["obsidian", "lapis", "rose", "bloodstone", "opalite", "dragon"],
+    "tray": ["leather", "oak", "ivory"],
+    "tower": ["runes", "ember", "void"],
+    "environment": ["cartographer", "mountain", "candlelit"]
+  },
+  "approval_note": "Automated browser and renderer checks are technical evidence; final visual approval remains with the user."
+}
