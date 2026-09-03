@@ -4,7 +4,8 @@
   "candidate_status": "candidate",
   "artistic_approval": "pending_user",
   "runtime": {
-    "renderer": "css3d-dom-v1",
+    "profile": "adel-dice-webgl-v1",
+    "renderer": "webgl2-canvas-v1",
     "external_assets": false,
     "fallback": false,
     "source_boundary": "greenfield"
