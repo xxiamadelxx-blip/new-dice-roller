@@ -1,0 +1,166 @@
+import { DIE_TYPES } from './core.js';
+
+export const SCENE_SKINS = Object.freeze({
+  dice: Object.freeze([
+    Object.freeze({ id: 'obsidian-ember', name: 'Obsidian Ember', description: 'Тёмный камень с живым янтарным швом.', body: '#171b1b', accent: '#e0b668', highlight: '#f6dc9d', family: 'obsidian' }),
+    Object.freeze({ id: 'moonstone-veil', name: 'Moonstone Veil', description: 'Холодная лунная смола с серебряным светом.', body: '#66728c', accent: '#d8e5ff', highlight: '#ffffff', family: 'moonstone' }),
+    Object.freeze({ id: 'verdant-rite', name: 'Verdant Rite', description: 'Глубокий зелёный камень и старое золото.', body: '#1f4a3d', accent: '#c7d48b', highlight: '#e8f2ba', family: 'verdant' }),
+    Object.freeze({ id: 'bloodglass', name: 'Bloodglass', description: 'Прозрачный рубиновый жар под медной цифрой.', body: '#6d202b', accent: '#ffb177', highlight: '#ffd6a8', family: 'bloodglass' }),
+    Object.freeze({ id: 'opal-veil', name: 'Opal Veil', description: 'Молочный опал с голубым иридисцентным бликом.', body: '#c9d2d2', accent: '#719fc2', highlight: '#f4f8ed', family: 'opal' }),
+  ]),
+  tray: Object.freeze([
+    Object.freeze({ id: 'dusk-oak', name: 'Dusk Oak', description: 'Тёмное дерево, мягкая кожа и латунная окантовка.', floor: '#171414', wall: '#39261d', rim: '#c7975b', accent: '#e6c986', family: 'wood' }),
+    Object.freeze({ id: 'star-covenant', name: 'Star Covenant', description: 'Сланцевое дно, созвездия и холодная бронза.', floor: '#101724', wall: '#202b40', rim: '#7c9bc1', accent: '#c7d9f6', family: 'star' }),
+    Object.freeze({ id: 'moss-and-brass', name: 'Moss & Brass', description: 'Зелёный текстиль с медным сигилом.', floor: '#10201c', wall: '#1e3b31', rim: '#b68b51', accent: '#cbd899', family: 'moss' }),
+    Object.freeze({ id: 'crimson-forge', name: 'Crimson Forge', description: 'Красная кожа и тёплые рёбра кованой меди.', floor: '#271315', wall: '#4d2021', rim: '#cc714d', accent: '#f5ad75', family: 'forge' }),
+  ]),
+  tower: Object.freeze([
+    Object.freeze({ id: 'brass-arc', name: 'Brass Arc', description: 'Компактная башня из тёмного дерева и латуни.', body: '#4a2e1f', dark: '#160e0b', metal: '#c99a58', accent: '#f0ca83', family: 'wood' }),
+    Object.freeze({ id: 'moon-spire', name: 'Moon Spire', description: 'Сланцевый корпус, серебряные направляющие и синий огонь.', body: '#263344', dark: '#0e141f', metal: '#7796b4', accent: '#b8def1', family: 'slate' }),
+    Object.freeze({ id: 'verdant-keep', name: 'Verdant Keep', description: 'Зелёный камень и старое железо с мшистым свечением.', body: '#29423a', dark: '#0e1815', metal: '#91aa7b', accent: '#c7db9d', family: 'stone' }),
+  ]),
+  table: Object.freeze([
+    Object.freeze({ id: 'obsidian-desk', name: 'Obsidian Desk', description: 'Антрацитовая поверхность с тихой золотой инкрустацией.', surface: '#0d1413', edge: '#252e2a', accent: '#b99458', background: '#070b0a', family: 'obsidian' }),
+    Object.freeze({ id: 'lunar-slate', name: 'Lunar Slate', description: 'Холодный сланец, туманная синь и серебряный край.', surface: '#121b2a', edge: '#2d4058', accent: '#91b6e1', background: '#070c16', family: 'slate' }),
+    Object.freeze({ id: 'deepwood-map', name: 'Deepwood Map', description: 'Тёмная зелень, медные линии и след старой карты.', surface: '#0d211a', edge: '#1b4233', accent: '#b9cb87', background: '#06100b', family: 'moss' }),
+    Object.freeze({ id: 'ember-vault', name: 'Ember Vault', description: 'Графит, красное дерево и горячая медная кромка.', surface: '#211313', edge: '#4b2421', accent: '#e18a5f', background: '#110908', family: 'forge' }),
+  ]),
+});
+
+export const DEFAULT_APPEARANCE = Object.freeze({
+  dice: 'obsidian-ember',
+  tray: 'dusk-oak',
+  tower: 'brass-arc',
+  table: 'obsidian-desk',
+});
+
+export const SKIN_CATEGORIES = Object.freeze(['dice', 'tray', 'tower', 'table']);
+
+export function getSkin(category, id) {
+  return SCENE_SKINS[category]?.find((skin) => skin.id === id) || null;
+}
+
+export function normalizeAppearance(input = {}) {
+  const result = {};
+  for (const category of SKIN_CATEGORIES) {
+    result[category] = getSkin(category, input[category])?.id || DEFAULT_APPEARANCE[category];
+  }
+  return Object.freeze(result);
+}
+
+export function applyAppearanceToStage(stage, appearance, mode) {
+  if (!stage) return;
+  const normalized = normalizeAppearance(appearance);
+  stage.dataset.mode = mode;
+  stage.dataset.dieSkin = normalized.dice;
+  stage.dataset.traySkin = normalized.tray;
+  stage.dataset.towerSkin = normalized.tower;
+  stage.dataset.tableSkin = normalized.table;
+  stage.style.setProperty('--table-surface', getSkin('table', normalized.table)?.surface || '#0d1413');
+  stage.style.setProperty('--table-edge', getSkin('table', normalized.table)?.edge || '#252e2a');
+  stage.style.setProperty('--table-accent', getSkin('table', normalized.table)?.accent || '#b99458');
+  stage.style.setProperty('--table-background', getSkin('table', normalized.table)?.background || '#070b0a');
+}
+
+function makePreviewElement(documentLike, category, skin) {
+  const preview = documentLike.createElement('span');
+  preview.className = `skin-preview skin-preview-${category}`;
+  preview.dataset.skinFamily = skin.family;
+  preview.style.setProperty('--preview-body', skin.body || skin.floor || skin.surface || '#1b1b1b');
+  preview.style.setProperty('--preview-dark', skin.dark || skin.wall || skin.edge || '#090909');
+  preview.style.setProperty('--preview-accent', skin.accent || skin.rim || '#c99d5a');
+  preview.style.setProperty('--preview-metal', skin.metal || skin.rim || skin.accent || '#c99d5a');
+
+  if (category === 'dice') {
+    const die = documentLike.createElement('span');
+    die.className = `mini-die mini-die-${skin.family}`;
+    die.textContent = '20';
+    preview.append(die);
+  } else if (category === 'tray') {
+    const tray = documentLike.createElement('span');
+    tray.className = 'mini-tray';
+    preview.append(tray);
+  } else if (category === 'tower') {
+    const tower = documentLike.createElement('span');
+    tower.className = 'mini-tower';
+    tower.innerHTML = '<i></i><b></b><em></em>';
+    preview.append(tower);
+  } else {
+    const table = documentLike.createElement('span');
+    table.className = 'mini-table';
+    preview.append(table);
+  }
+  return preview;
+}
+
+export function renderSkinCards(documentLike, root, category, appearance, onChoose) {
+  if (!root) return;
+  const normalized = normalizeAppearance(appearance);
+  root.replaceChildren();
+  for (const skin of SCENE_SKINS[category] || []) {
+    const card = documentLike.createElement('button');
+    card.type = 'button';
+    card.className = 'skin-card';
+    card.dataset.skinId = skin.id;
+    card.dataset.category = category;
+    card.setAttribute('aria-pressed', normalized[category] === skin.id ? 'true' : 'false');
+    if (normalized[category] === skin.id) card.classList.add('is-selected');
+    card.append(makePreviewElement(documentLike, category, skin));
+
+    const copy = documentLike.createElement('span');
+    copy.className = 'skin-card-copy';
+    const name = documentLike.createElement('strong');
+    name.textContent = skin.name;
+    const description = documentLike.createElement('small');
+    description.textContent = skin.description;
+    const state = documentLike.createElement('em');
+    state.textContent = normalized[category] === skin.id ? 'Выбрано' : 'Выбрать';
+    copy.append(name, description, state);
+    card.append(copy);
+    card.addEventListener('click', () => onChoose(category, skin.id));
+    root.append(card);
+  }
+}
+
+function makeDieToken(documentLike, value, die, skin, index, phase) {
+  const token = documentLike.createElement('article');
+  token.className = `die-token die-token-${die.family}`;
+  if (phase === 'rolling') token.classList.add('is-rolling');
+  token.dataset.die = die.id;
+  token.dataset.result = String(value);
+  token.dataset.index = String(index + 1);
+  token.style.setProperty('--die-body', skin.body);
+  token.style.setProperty('--die-accent', skin.accent);
+  token.style.setProperty('--die-highlight', skin.highlight);
+  token.style.setProperty('--die-delay', `${index * 70}ms`);
+
+  const shell = documentLike.createElement('div');
+  shell.className = 'die-shell';
+  const type = documentLike.createElement('span');
+  type.className = 'die-shell-type';
+  type.textContent = die.label;
+  const result = documentLike.createElement('strong');
+  result.className = 'die-shell-value';
+  result.textContent = String(value);
+  const mark = documentLike.createElement('span');
+  mark.className = 'die-shell-mark';
+  mark.textContent = index === 0 ? '✦' : String(index + 1).padStart(2, '0');
+  shell.append(type, result, mark);
+  token.append(shell);
+  return token;
+}
+
+export function renderDice(documentLike, root, event, appearance, phase = 'idle') {
+  if (!root) return;
+  root.replaceChildren();
+  if (!event) {
+    const empty = documentLike.createElement('div');
+    empty.className = 'dice-empty';
+    empty.innerHTML = '<span>✦</span><strong>Выбери кость и брось</strong><small>Результат появится здесь</small>';
+    root.append(empty);
+    return;
+  }
+  const die = DIE_TYPES.find((item) => item.id === event.die) || DIE_TYPES[5];
+  const skin = getSkin('dice', normalizeAppearance(appearance).dice) || SCENE_SKINS.dice[0];
+  event.outcomes.forEach((value, index) => root.append(makeDieToken(documentLike, value, die, skin, index, phase)));
+}
