@@ -31,9 +31,10 @@ python3 -m http.server 4173
 ## Архитектура
 
 - `src/core.js` — независимая модель броска и нормализация входных данных;
-- `src/scene.js` — авторский каталог материалов и процедурный DOM-рендер сцены;
+- `src/scene.js` — авторский каталог материалов и Skin Studio previews;
+- `src/webgl-scene.js` — собственный WebGL2 renderer сцены и polyhedron meshes;
 - `src/app.js` — UI, локальное состояние, история и QA bridge;
-- `styles.css` — authored CSS-сцена без внешних изображений;
+- `styles.css` — layout, controls и прозрачный слой числовых labels без визуального fallback;
 - `assets/visual-manifest.json` — технический manifest candidate-визуала.
 
 ## Границы источников
