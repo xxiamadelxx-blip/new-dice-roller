@@ -47,7 +47,7 @@ WebGL2 canvas renderer и authored polyhedron meshes реализованы; р�
 - Состояния selected / available / unavailable.
 - Сохранение косметики локально.
 - Cosmetic changes не изменяют roll core.
-- Первый визуальный набор собран как candidate; пользовательская визуальная проверка ещё не пройдена.
+- Первый визуальный набор расширен до десяти repository-owned минеральных dice skins и собран как candidate; пользовательская визуальная проверка ещё не пройдена.
 
 ## M4. QA-пульт и Visual Lab bridge — Partial
 
@@ -65,7 +65,7 @@ QA bridge и deterministic fixture реализованы; capture evidence ещ
 - Tap, scroll, input, copy и roll работают на мобильном viewport.
 - Нет секретов и удалённых команд в приложении.
 - Контракт статического HTTP/HTTPS runtime и semantic controls реализован.
-- Live smoke, foreground/background и copy в Ø Browser не подтверждены из-за недоступного локального URL и не включённого Pages.
+- Live smoke, foreground/background и copy в Ø Browser не подтверждены: Pages workflow запускается, но Configure Pages получает `Resource not accessible by integration`, поэтому HTTPS URL редиректит на репозиторий.
 
 ## M6. Android Cloud Test Stand handoff — Held
 
