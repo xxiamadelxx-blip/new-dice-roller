@@ -252,9 +252,11 @@ function boot() {
   bindEvents();
   try {
     renderer = new DiceRenderer(elements.canvas, { onSettled: finishRoll });
+    document.body.dataset.renderer = "ready";
     elements.webglStatus.textContent = "WebGL: готов";
   } catch (error) {
     console.error(error);
+    document.body.dataset.renderer = "error";
     elements.webglStatus.textContent = "WebGL: недоступен";
     elements.sceneFailure.hidden = false;
     elements.rollButton.disabled = true;
