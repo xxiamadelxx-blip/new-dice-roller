@@ -130,9 +130,10 @@ export function renderSkinCards(documentLike, root, category, appearance, onChoo
 
 function makeDieToken(documentLike, value, die, skin, index, phase) {
   const token = documentLike.createElement('article');
-  token.className = `die-token die-token-${die.family}`;
+  token.className = `die-token die-token-${die.family} die-skin-${skin.family}`;
   if (phase === 'rolling') token.classList.add('is-rolling');
   token.dataset.die = die.id;
+  token.dataset.skin = skin.id;
   token.dataset.result = String(value);
   token.dataset.index = String(index + 1);
   token.style.setProperty('--die-body', skin.body);
