@@ -1,196 +1,190 @@
 <!doctype html>
 <html lang="ru">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#07131d" />
-    <meta name="description" content="WebGL-роллер D&D костей от к4 до к100." />
-    <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
-    <title>Ø Dice — броски костей</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#080c0c">
+    <meta name="description" content="Новый бросатель D&D кубиков от d4 до d100">
+    <title>Ø Arcane Desk — Dice Roller</title>
+    <link rel="stylesheet" href="styles.css">
   </head>
-  <body data-environment="cartographer">
+  <body>
     <div class="app-shell">
-      <header class="topbar">
-        <a class="brand" href="./" aria-label="Ø Dice">
+      <header class="app-header">
+        <button class="brand" type="button" data-view="roll" aria-label="Открыть бросок">
           <span class="brand-mark">Ø</span>
-          <span class="brand-copy">
-            <strong>Ø DICE</strong>
-            <small>ARCANE TABLE</small>
-          </span>
-        </a>
-        <div class="topbar-meta" aria-label="Состояние приложения">
-          <span class="status-dot" aria-hidden="true"></span>
-          <span id="webgl-status">WebGL: запуск</span>
-          <button class="icon-button" id="clear-history" type="button" title="Очистить историю" aria-label="Очистить историю">⌫</button>
+          <span class="brand-copy"><strong>ARCANE DESK</strong><small>DICE ROLLER</small></span>
+        </button>
+        <div class="header-state" id="header-state" data-qa="renderer-status">
+          <span class="state-dot"></span>
+          <span>СЦЕНА ГОТОВА</span>
         </div>
       </header>
 
-      <main class="main-layout">
-        <section class="scene-column" aria-labelledby="scene-title">
-          <div class="section-kicker">VISUAL LAB / TABLE 01</div>
-          <div class="scene-heading">
+      <main>
+        <section class="view-panel is-active" id="view-roll" data-view-panel="roll" aria-labelledby="roll-title">
+          <div class="intro-row">
             <div>
-              <h1 id="scene-title">БРОСКИ КОСТЕЙ</h1>
-              <p>Точная случайность. Настоящий WebGL. Один бросок — одна история.</p>
+              <p class="eyebrow">D&D · LOCAL ROLL ENGINE</p>
+              <h1 id="roll-title">Бросок<br><i>с характером.</i></h1>
             </div>
-            <div class="scene-stamp" aria-label="Режим рендера">
-              <span>WEBGL</span>
-              <small id="frame-state">SETTLING</small>
-            </div>
+            <div class="intro-sigil" aria-hidden="true"><span>✦</span><small>01</small></div>
           </div>
 
-          <div class="scene-frame">
-            <div class="scene-canvas-wrap">
-              <canvas id="dice-canvas" aria-label="Трёхмерный лоток с башней и костями"></canvas>
-              <div class="scene-failure" id="scene-failure" hidden>
-                <strong>WebGL недоступен</strong>
-                <span>Резервной 2D-сцены нет: включите аппаратное ускорение WebView.</span>
-              </div>
-              <div class="scene-overlay scene-overlay-top">
-                <span>THE ARCANE TABLE</span>
-                <span>LOCAL / CSPRNG</span>
-              </div>
-              <div class="scene-overlay scene-overlay-bottom">
-                <span id="scene-caption">Лоток готов к броску</span>
-                <span class="capture-badge"><i></i> CAPTURE READY</span>
-              </div>
+          <section class="scene-card" aria-label="Игровая сцена">
+            <div class="scene-headline">
+              <span class="eyebrow">ACTIVE DESK</span>
+              <span class="scene-mode-readout" id="scene-mode-readout">ЛОТОК</span>
             </div>
-            <div class="scene-controls" aria-label="Управление сценой">
-              <button type="button" class="scene-control" id="scene-spin-left" aria-label="Повернуть сцену влево">↶</button>
-              <span>ПЕРЕТАЩИТЕ СЦЕНУ</span>
-              <button type="button" class="scene-control" id="scene-spin-right" aria-label="Повернуть сцену вправо">↷</button>
-            </div>
-          </div>
+            <div class="scene-stage" id="scene-stage" data-mode="tray" data-die-skin="obsidian-ember" data-tray-skin="dusk-oak" data-tower-skin="brass-arc" data-table-skin="obsidian-desk">
+              <div class="scene-atmosphere" aria-hidden="true"></div>
+              <div class="scene-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
-          <div class="quick-skins" aria-label="Быстрый выбор оформления">
-            <div class="quick-skins-heading">
-              <span>ОФОРМЛЕНИЕ СТОЛА</span>
-              <button type="button" class="text-button" id="open-skins">Открыть витрину →</button>
+              <div class="scene-object scene-table-object" data-scene-object="table" aria-hidden="true">
+                <div class="table-inlay"></div>
+                <div class="table-ring table-ring-one"></div>
+                <div class="table-ring table-ring-two"></div>
+              </div>
+
+              <div class="scene-object scene-tray-object" data-scene-object="tray" aria-hidden="true">
+                <div class="tray-rim tray-rim-outer"></div>
+                <div class="tray-rim tray-rim-inner"></div>
+                <div class="tray-sigil">✦</div>
+                <div class="tray-stitch tray-stitch-a"></div>
+                <div class="tray-stitch tray-stitch-b"></div>
+              </div>
+
+              <div class="scene-object scene-tower-object" data-scene-object="tower" aria-hidden="true">
+                <div class="tower-crown"><span></span><i></i></div>
+                <div class="tower-columns"><i></i><i></i><i></i><i></i></div>
+                <div class="tower-channel"><span></span></div>
+                <div class="tower-base"><i></i></div>
+                <div class="tower-exit"></div>
+              </div>
+
+              <div class="dice-cluster" id="dice-cluster" role="status" aria-live="polite" aria-label="Результат броска">
+                <div class="dice-empty"><span>✦</span><strong>Выбери кость и брось</strong><small>Результат появится здесь</small></div>
+              </div>
+              <div class="scene-light scene-light-left" aria-hidden="true"></div>
+              <div class="scene-light scene-light-right" aria-hidden="true"></div>
             </div>
-            <div class="quick-skin-list" id="quick-skin-list"></div>
-          </div>
+            <div class="scene-footer">
+              <span class="scene-phase" id="scene-phase">ГОТОВ К БРОСКУ</span>
+              <span class="scene-commit" id="scene-commit">LOCAL · CRYPTO RNG</span>
+            </div>
+            <div class="result-card" id="result-card" data-qa="last-result">
+              <div class="result-main">
+                <span class="eyebrow">LAST RESULT</span>
+                <strong id="result-total">—</strong>
+              </div>
+              <div class="result-detail">
+                <span id="result-formula">Бросок ещё не сделан</span>
+                <button class="icon-action" id="copy-result" type="button" aria-label="Скопировать результат" title="Скопировать">⧉</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="control-card" aria-label="Параметры броска">
+            <div class="control-card-head">
+              <span class="eyebrow">ROLL SETTINGS</span>
+              <span class="formula-pill" id="formula-readout">1d20</span>
+            </div>
+            <div class="control-group">
+              <div class="control-label"><span>Кость</span><small>SELECT DIE</small></div>
+              <div class="die-selector" id="die-selector" role="group" aria-label="Выбор типа кости">
+                <button type="button" class="die-choice" data-die="d4">d4</button>
+                <button type="button" class="die-choice" data-die="d6">d6</button>
+                <button type="button" class="die-choice" data-die="d8">d8</button>
+                <button type="button" class="die-choice" data-die="d10">d10</button>
+                <button type="button" class="die-choice" data-die="d12">d12</button>
+                <button type="button" class="die-choice is-selected" data-die="d20">d20</button>
+                <button type="button" class="die-choice" data-die="d100">d100</button>
+              </div>
+            </div>
+            <div class="control-grid">
+              <label class="field-block" for="dice-count">
+                <span class="control-label"><span>Количество</span><small>COUNT</small></span>
+                <span class="stepper">
+                  <button type="button" data-count-step="-1" aria-label="Уменьшить количество">−</button>
+                  <input id="dice-count" type="number" min="1" max="12" value="1" inputmode="numeric" aria-label="Количество кубиков">
+                  <button type="button" data-count-step="1" aria-label="Увеличить количество">+</button>
+                </span>
+              </label>
+              <label class="field-block" for="modifier">
+                <span class="control-label"><span>Модификатор</span><small>MODIFIER</small></span>
+                <input class="number-field" id="modifier" type="number" min="-99" max="99" value="0" inputmode="numeric" aria-label="Модификатор">
+              </label>
+            </div>
+            <div class="control-group mode-group">
+              <div class="control-label"><span>Поверхность броска</span><small>ACTIVE CONTAINER</small></div>
+              <div class="mode-selector" id="mode-selector" role="group" aria-label="Выбор поверхности броска">
+                <button type="button" class="mode-choice" data-mode="table"><span>◌</span>Стол</button>
+                <button type="button" class="mode-choice is-selected" data-mode="tray"><span>◇</span>Лоток</button>
+                <button type="button" class="mode-choice" data-mode="tower"><span>▥</span>Башня</button>
+              </div>
+            </div>
+            <button class="roll-button" id="roll-button" type="button">
+              <span class="roll-button-mark">✦</span>
+              <span>Бросить <b id="roll-button-formula">1d20</b></span>
+              <span class="roll-button-arrow">→</span>
+            </button>
+            <p class="secure-note"><span>◈</span> Результат фиксируется до начала анимации · Web Crypto</p>
+          </section>
         </section>
 
-        <aside class="composer-column" aria-labelledby="composer-title">
-          <div class="panel panel-composer">
-            <div class="panel-heading">
-              <div>
-                <div class="section-kicker">ROLL COMPOSER</div>
-                <h2 id="composer-title">Собери бросок</h2>
-              </div>
-              <span class="panel-index">01</span>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label-row">
-                <span class="field-label">Тип кости</span>
-                <span class="field-hint">D&D POLYHEDRAL</span>
-              </div>
-              <div class="die-grid" id="die-grid">
-                <button type="button" class="die-button" data-sides="4">к4</button>
-                <button type="button" class="die-button" data-sides="6">к6</button>
-                <button type="button" class="die-button" data-sides="8">к8</button>
-                <button type="button" class="die-button" data-sides="10">к10</button>
-                <button type="button" class="die-button" data-sides="12">к12</button>
-                <button type="button" class="die-button is-active" data-sides="20">к20</button>
-                <button type="button" class="die-button" data-sides="100">к100</button>
-              </div>
-            </div>
-
-            <div class="field-group compact-fields">
-              <div class="field-control">
-                <div class="field-label-row"><span class="field-label">Количество</span><span class="field-hint">MAX 8</span></div>
-                <div class="stepper">
-                  <button type="button" data-step="count" data-delta="-1" aria-label="Уменьшить количество">−</button>
-                  <output id="count-value" for="count-minus count-plus">1</output>
-                  <button type="button" data-step="count" data-delta="1" aria-label="Увеличить количество">+</button>
-                </div>
-              </div>
-              <div class="field-control">
-                <div class="field-label-row"><span class="field-label">Модификатор</span><span class="field-hint">−99…+99</span></div>
-                <div class="stepper">
-                  <button type="button" data-step="modifier" data-delta="-1" aria-label="Уменьшить модификатор">−</button>
-                  <output id="modifier-value">0</output>
-                  <button type="button" data-step="modifier" data-delta="1" aria-label="Увеличить модификатор">+</button>
-                </div>
-              </div>
-            </div>
-
-            <label class="check-row">
-              <input id="per-die-modifier" type="checkbox" />
-              <span class="fake-check" aria-hidden="true"></span>
-              <span>Добавлять модификатор к каждой кости</span>
-            </label>
-
-            <div class="mode-switch" role="group" aria-label="Режим броска">
-              <button type="button" class="mode-button is-active" data-mode="normal">Нормально</button>
-              <button type="button" class="mode-button" data-mode="disadvantage">Помеха</button>
-              <button type="button" class="mode-button" data-mode="advantage">Преимущество</button>
-            </div>
-
-            <button type="button" class="roll-button" id="roll-button">
-              <span class="roll-button-glyph">✦</span>
-              <span>Бросок</span>
-              <kbd>SPACE</kbd>
-            </button>
-            <p class="composer-note" id="composer-note">Преимущество и помеха работают как в D&D для одиночного к20.</p>
+        <section class="view-panel" id="view-skins" data-view-panel="skins" aria-labelledby="skins-title" hidden>
+          <div class="section-heading">
+            <div><p class="eyebrow">VISUAL LAB · LOCAL CATALOG</p><h1 id="skins-title">Skin<br><i>Studio.</i></h1></div>
+            <span class="dev-badge">DEV</span>
           </div>
-
-          <div class="panel result-panel" aria-live="polite">
-            <div class="panel-heading panel-heading-small">
-              <div>
-                <div class="section-kicker">LAST RESULT</div>
-                <h2>Результат</h2>
-              </div>
-              <button type="button" class="copy-button" id="copy-result" aria-label="Скопировать результат" title="Скопировать результат">⧉</button>
-            </div>
-            <div class="result-card" id="result-card">
-              <div class="result-expression" id="result-expression">1к20</div>
-              <div class="result-total" id="result-total">—</div>
-              <div class="result-breakdown" id="result-breakdown">Нажмите «Бросок», чтобы начать</div>
-            </div>
+          <p class="section-lede">Четыре независимых слоя сцены. Выбирай материал — сам бросок от этого не меняется.</p>
+          <div class="skin-tabs" id="skin-tabs" role="tablist" aria-label="Категории скинов">
+            <button type="button" role="tab" aria-selected="true" class="is-selected" data-skin-category="dice">Кости</button>
+            <button type="button" role="tab" aria-selected="false" data-skin-category="tray">Лоток</button>
+            <button type="button" role="tab" aria-selected="false" data-skin-category="tower">Башня</button>
+            <button type="button" role="tab" aria-selected="false" data-skin-category="table">Фон</button>
           </div>
+          <div class="skin-grid" id="skin-grid"></div>
+          <div class="provenance-note"><span>✦</span><p><strong>Candidate visual set</strong><br>Техническая проверка не является художественным утверждением. Финальный APPROVE остаётся за тобой.</p></div>
+        </section>
 
-          <div class="panel history-panel">
-            <div class="panel-heading panel-heading-small">
-              <div>
-                <div class="section-kicker">SESSION LOG</div>
-                <h2>История сессии</h2>
-              </div>
-              <span class="history-count" id="history-count">0</span>
-            </div>
-            <div class="history-list" id="history-list">
-              <div class="empty-history">Здесь появятся последние броски.</div>
-            </div>
+        <section class="view-panel" id="view-history" data-view-panel="history" aria-labelledby="history-title" hidden>
+          <div class="section-heading">
+            <div><p class="eyebrow">LOCAL JOURNAL · PRIVATE</p><h1 id="history-title">Roll<br><i>History.</i></h1></div>
+            <button class="text-action" id="clear-history" type="button">Очистить</button>
           </div>
-        </aside>
+          <p class="section-lede">История хранится только на этом устройстве и содержит уже зафиксированные результаты.</p>
+          <div class="history-list" id="history-list"></div>
+        </section>
+
+        <section class="qa-panel" id="qa-panel" data-qa-panel hidden aria-labelledby="qa-title">
+          <div class="qa-heading"><div><p class="eyebrow">VISUAL LAB · QA CONSOLE</p><h2 id="qa-title">QA <i>pult</i></h2></div><span class="qa-badge">TECHNICAL</span></div>
+          <div class="qa-grid">
+            <div><span>PROFILE</span><strong id="qa-profile" data-qa-field="profile">—</strong></div>
+            <div><span>RENDERER</span><strong id="qa-renderer" data-qa-field="renderer">—</strong></div>
+            <div><span>FALLBACK</span><strong id="qa-fallback" data-qa-field="fallback">—</strong></div>
+            <div><span>PHASE</span><strong id="qa-phase" data-qa-field="phase">—</strong></div>
+            <div><span>FRAME</span><strong id="qa-frame" data-qa-field="frame">—</strong></div>
+            <div><span>VIEWPORT</span><strong id="qa-viewport" data-qa-field="viewport">—</strong></div>
+            <div><span>MODE</span><strong id="qa-mode" data-qa-field="mode">—</strong></div>
+            <div><span>LAST ROLL</span><strong id="qa-roll" data-qa-field="last-roll">—</strong></div>
+          </div>
+          <div class="qa-actions">
+            <button class="secondary-button" id="qa-fixture" type="button">Загрузить fixture</button>
+            <button class="secondary-button" id="qa-manifest" type="button">Скопировать manifest</button>
+          </div>
+          <p class="qa-disclaimer">QA pass подтверждает структуру и рендеринг. Это не заменяет просмотр candidate пользователем.</p>
+        </section>
       </main>
 
-      <section class="showcase" id="showcase" aria-labelledby="showcase-title">
-        <div class="showcase-heading">
-          <div>
-            <div class="section-kicker">VISUAL LAB / COLLECTION</div>
-            <h2 id="showcase-title">Витрина оформления</h2>
-            <p>Материалы вдохновлены камнем, резным деревом, чёрной кожей и картами старых экспедиций.</p>
-          </div>
-          <button type="button" class="text-button" id="close-skins">Свернуть ↑</button>
-        </div>
-        <div class="showcase-tabs" role="tablist" aria-label="Категория оформления">
-          <button type="button" class="showcase-tab is-active" role="tab" data-category="dice">Кости</button>
-          <button type="button" class="showcase-tab" role="tab" data-category="tray">Лоток</button>
-          <button type="button" class="showcase-tab" role="tab" data-category="tower">Башня</button>
-          <button type="button" class="showcase-tab" role="tab" data-category="environment">Фон</button>
-        </div>
-        <div class="showcase-grid" id="showcase-grid"></div>
-      </section>
-
-      <footer class="footer">
-        <span>Ø DICE / PRIVATE TABLE</span>
-        <span>Результат выбирается CSPRNG до начала анимации</span>
-        <span>WebGL FRAME <b id="footer-frame">—</b></span>
-      </footer>
+      <nav class="bottom-nav" aria-label="Основная навигация">
+        <button type="button" class="nav-item is-selected" data-view="roll"><span>✦</span><small>Бросок</small></button>
+        <button type="button" class="nav-item" data-view="skins"><span>◇</span><small>Скины</small></button>
+        <button type="button" class="nav-item" data-view="history"><span>≡</span><small>История</small></button>
+      </nav>
     </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="src/app.js"></script>
   </body>
 </html>
